@@ -73,11 +73,14 @@ public class HTTPResponse {
             this.headers.put("Content-Length", String.valueOf(this.body.length));
         }
 
+        // Write all headers
         outputStream.write(String.format("%s\r\n", getStatusLine()).getBytes(StandardCharsets.ISO_8859_1));
         for (Map.Entry<String, String> header : this.headers.entrySet()) {
             outputStream.write(String.format("%s: %s\r\n", header.getKey(), header.getValue()).getBytes(StandardCharsets.ISO_8859_1));
         }
         outputStream.write("\r\n".getBytes(StandardCharsets.ISO_8859_1)); // There must be CRLF after the status line and headers.
+
+        // Write body
         if (this.body != null) {
             outputStream.write(this.body);
         }
