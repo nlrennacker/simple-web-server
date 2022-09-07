@@ -9,23 +9,21 @@ import java.util.Map;
 import java.util.Optional;
 
 public class HttpdConf {
-    private static final Integer DEFAULT_LISTEN = 8080;
-
     private final Integer listen;
     private final String documentRoot;
     private final String logFile;
     private final Map<String, String> aliases;
     private final Map<String, String> scriptAliases;
-    private final String accessFile;
+    private final List<String> accessFile;
     private final List<String> directoryIndexes;
 
     public HttpdConf(List<String> config) {
-        int tempListen = DEFAULT_LISTEN;
+        Integer tempListen = null;
         String tempDocumentRoot = null;
         String tempLogFile = null;
         Map<String, String> tempAliases = null;
         Map<String, String> tempScriptAliases = null;
-        String tempAccessFile = null;
+        List<String> tempAccessFile = null;
         List<String> tempDirectoryIndexes = null;
 
         for (String line : config) {
@@ -47,12 +45,25 @@ public class HttpdConf {
                     }
                     tempScriptAliases.put(tokens.get(1), tokens.get(2));
                 }
-                case "ACCESSFILE" -> tempAccessFile = tokens.get(1);
+                case "ACCESSFILE" -> {
+                    if (tempAccessFile == null) {
+                        tempAccessFile = new ArrayList<>();
+                    }
+                    tempAccessFile.addAll(tokens.subList(1, tokens.size()));
+                }
                 case "DIRECTORYINDEX" -> {
+                    // https://httpd.apache.org/docs/current/mod/mod_dir.html
+                    // A single argument of "disabled" prevents mod_dir from searching for an index.
+                    // An argument of "disabled" will be interpreted literally if it has any arguments before or after
+                    // it, even if they are "disabled" as well.
+                    if (tokens.size() == 2 && tokens.get(1).equals("disabled")) {
+                        tempDirectoryIndexes = null;
+                        break;
+                    }
                     if (tempDirectoryIndexes == null) {
                         tempDirectoryIndexes = new ArrayList<>();
                     }
-                    tempDirectoryIndexes.add(tokens.get(1));
+                    tempDirectoryIndexes.addAll(tokens.subList(1, tokens.size()));
                 }
                 default ->
                     System.out.printf("Warning: HttpdConfiguration: Unrecognized or unsupported directive: %s%n", directive);
@@ -83,7 +94,7 @@ public class HttpdConf {
     public Optional<Map<String, String>> getScriptAliases() {
         return Optional.ofNullable(scriptAliases);
     }
-    public Optional<String> getAccessFile() {
+    public Optional<List<String>> getAccessFile() {
         return Optional.ofNullable(accessFile);
     }
     public Optional<List<String>> getDirectoryIndexes() {
