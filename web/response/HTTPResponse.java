@@ -1,5 +1,6 @@
 package web.response;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -84,6 +85,10 @@ public class HTTPResponse {
         if (this.body != null) {
             outputStream.write(this.body);
         }
+
+        // TODO: Debugging code, remove
+        System.out.println("Sending response:");
+        System.out.println(this);
     }
 
     private String getStatusLine() {
@@ -94,5 +99,21 @@ public class HTTPResponse {
                 this.httpVersion,
                 this.statusCode,
                 reasonPhrase);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(String.format("%s\r\n", getStatusLine()));
+        for (Map.Entry<String, String> header : this.headers.entrySet()) {
+            stringBuilder.append(String.format("%s: %s\r\n", header.getKey(), header.getValue()));
+        }
+        stringBuilder.append("\r\n");
+        if (body == null) {
+            stringBuilder.append("<no body>");
+        } else {
+            stringBuilder.append(String.format("<body> %d bytes\r\n", this.body.length));
+        }
+        return stringBuilder.toString();
     }
 }
