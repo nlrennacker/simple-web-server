@@ -10,11 +10,13 @@ public class HTTPRequest {
     private String identifier;
     private String version;
     private InetAddress INet;
+    private String fullRequest;
 
     public HTTPRequest(Socket socket) throws IOException {
         this.INet = socket.getInetAddress();
         HttpRequestParser tempParser = new HttpRequestParser(socket, this);
-        System.out.println("Request Recieved: \n" + tempParser.getFullRequest());
+        this.fullRequest = tempParser.getFullRequest();
+        System.out.println("Request Received: \n" + this.fullRequest);
     }
 
     public void setHeader(String[] headers){
@@ -27,4 +29,7 @@ public class HTTPRequest {
         return method;
     }
 
+    public String getFullRequest() {
+        return this.fullRequest;
+    }
 }

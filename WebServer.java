@@ -7,8 +7,11 @@ import java.io.IOException;
 import java.util.Map;
 
 public class WebServer {
+    private static final Integer DEFAULT_PORT = 8080;
+
     private static HttpdConf httpdConf;
     private static MimeTypes mimeTypes;
+
     public static void main(String[] args) throws IOException {
         loadConfigs();
         startServer();
@@ -56,7 +59,7 @@ public class WebServer {
     }
 
     private static void startServer(){
-        Handler serverStarter = new Handler((int)httpdConf.getListen().orElse(8080));
+        Handler serverStarter = new Handler(httpdConf.getListen().orElse(DEFAULT_PORT));
         serverStarter.run();
     }
 }
