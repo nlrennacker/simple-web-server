@@ -69,7 +69,7 @@ public class HTTPResponse {
         this.headers.put("Date", (new Date()).toString());
 
         // Automatically add other headers
-        if (this.body.length > 0) {
+        if (this.body != null) {
             this.headers.put("Content-Length", String.valueOf(this.body.length));
         }
 
