@@ -78,7 +78,9 @@ public class HTTPResponse {
             outputStream.write(String.format("%s: %s\r\n", header.getKey(), header.getValue()).getBytes(StandardCharsets.ISO_8859_1));
         }
         outputStream.write("\r\n".getBytes(StandardCharsets.ISO_8859_1)); // There must be CRLF after the status line and headers.
-        outputStream.write(this.body);
+        if (this.body != null) {
+            outputStream.write(this.body);
+        }
     }
 
     private String getStatusLine() {
