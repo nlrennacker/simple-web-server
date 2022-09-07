@@ -74,6 +74,10 @@ public class HTTPResponse {
             this.headers.put("Content-Length", String.valueOf(this.body.length));
         }
 
+        // TODO: Debugging code, remove
+        System.out.println("Sending response:");
+        System.out.println(this);
+
         // Write all headers
         outputStream.write(String.format("%s\r\n", getStatusLine()).getBytes(StandardCharsets.ISO_8859_1));
         for (Map.Entry<String, String> header : this.headers.entrySet()) {
@@ -85,10 +89,6 @@ public class HTTPResponse {
         if (this.body != null) {
             outputStream.write(this.body);
         }
-
-        // TODO: Debugging code, remove
-        System.out.println("Sending response:");
-        System.out.println(this);
     }
 
     private String getStatusLine() {
