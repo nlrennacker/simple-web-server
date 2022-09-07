@@ -53,12 +53,12 @@ public class WebServer {
             System.out.printf("mime type mapping: %s %s%n", entry.getKey(), entry.getValue());
         }
     }
-    private static void loadConfigs() throws IOException{
+    private static void loadConfigs() throws IOException {
         httpdConf = new HttpdConf(ConfigurationReader.readConfiguration("conf/httpd.conf"));
         mimeTypes = new MimeTypes(ConfigurationReader.readConfiguration("conf/mime.types"));
     }
 
-    private static void startServer(){
+    private static void startServer() {
         Handler serverStarter = new Handler(httpdConf.getListen().orElse(DEFAULT_PORT));
         serverStarter.run();
     }
