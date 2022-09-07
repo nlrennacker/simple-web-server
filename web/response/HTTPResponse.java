@@ -59,6 +59,10 @@ public class HTTPResponse {
         this.headers = headers;
     }
 
+    public void setBody(String string) {
+        this.setBody(string.getBytes(StandardCharsets.ISO_8859_1));
+    }
+
     public void setBody(byte[] data) {
         this.body = data;
     }
