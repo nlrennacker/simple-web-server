@@ -26,13 +26,9 @@ public class WebServer {
                 }
             },
             () -> System.out.println("httpd script aliases: NOT CONFIGURED"));
-        httpdConf.getDirectoryIndexes().ifPresentOrElse(
-            opt -> {
-                for (String str : opt) {
-                    System.out.printf("httpd directory indexes: %s%n", str);
-                }
-            },
-            () -> System.out.println("httpd directory indexes: NOT CONFIGURED"));
+        httpdConf.getDirectoryIndex().ifPresentOrElse(
+            opt -> System.out.printf("httpd directory index: %s%n", opt),
+            () -> System.out.println("httpd directory index: NOT CONFIGURED"));
         for (Map.Entry<String, String> entry : mimeTypes.getMimeTypes().entrySet()) {
             System.out.printf("mime type mapping: %s %s%n", entry.getKey(), entry.getValue());
         }
