@@ -13,14 +13,14 @@ public class HttpdConf {
     private final String documentRoot;
     private final String logFile;
     private final Map<String, String> scriptAliases;
-    private final List<String> directoryIndexes;
+    private final String directoryIndex;
 
     public HttpdConf(List<String> config) {
         Integer tempListen = null;
         String tempDocumentRoot = null;
         String tempLogFile = null;
         Map<String, String> tempScriptAliases = null;
-        List<String> tempDirectoryIndexes = null;
+        String tempDirectoryIndex = null;
 
         for (String line : config) {
             List<String> tokens = ConfigurationUtils.splitConfigurationLineIntoTokens(line);
@@ -35,12 +35,7 @@ public class HttpdConf {
                     }
                     tempScriptAliases.put(tokens.get(1), tokens.get(2));
                 }
-                case "DIRECTORYINDEX" -> {
-                    if (tempDirectoryIndexes == null) {
-                        tempDirectoryIndexes = new ArrayList<>();
-                    }
-                    tempDirectoryIndexes.addAll(tokens.subList(1, tokens.size()));
-                }
+                case "DIRECTORYINDEX" -> tempDirectoryIndex = tokens.get(1);
                 default ->
                     System.out.printf("Warning: HttpdConfiguration: Unrecognized or unsupported directive: %s%n", directive);
             }
@@ -50,7 +45,7 @@ public class HttpdConf {
         documentRoot = tempDocumentRoot;
         logFile = tempLogFile;
         scriptAliases = tempScriptAliases;
-        directoryIndexes = tempDirectoryIndexes;
+        directoryIndex = tempDirectoryIndex;
     }
 
     public Optional<Integer> getListen() {
@@ -69,7 +64,7 @@ public class HttpdConf {
         return Optional.ofNullable(scriptAliases);
     }
 
-    public Optional<List<String>> getDirectoryIndexes() {
-        return Optional.ofNullable(directoryIndexes);
+    public Optional<String> getDirectoryIndex() {
+        return Optional.ofNullable(directoryIndex);
     }
 }
