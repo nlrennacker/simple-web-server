@@ -19,13 +19,6 @@ public class WebServer {
         httpdConf.getLogFile().ifPresentOrElse(
             opt -> System.out.printf("httpd log file: %s%n", opt),
             () -> System.out.println("httpd log file: NOT CONFIGURED"));
-        httpdConf.getAliases().ifPresentOrElse(
-            opt -> {
-                for (Map.Entry<String, String> entry : opt.entrySet()) {
-                    System.out.printf("httpd aliases: %s -> %s%n", entry.getKey(), entry.getValue());
-                }
-            },
-            () -> System.out.println("httpd aliases: NOT CONFIGURED"));
         httpdConf.getScriptAliases().ifPresentOrElse(
             opt -> {
                 for (Map.Entry<String, String> entry : opt.entrySet()) {
@@ -33,9 +26,6 @@ public class WebServer {
                 }
             },
             () -> System.out.println("httpd script aliases: NOT CONFIGURED"));
-        httpdConf.getAccessFile().ifPresentOrElse(
-            opt -> System.out.printf("httpd access file: %s%n", opt),
-            () -> System.out.println("httpd access file: NOT CONFIGURED"));
         httpdConf.getDirectoryIndexes().ifPresentOrElse(
             opt -> {
                 for (String str : opt) {
