@@ -1,62 +1,132 @@
 package web.request;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Socket;
+import java.util.HashMap;
 
-public class HttpRequestParser{
+public class HttpRequestParser {
 
-    private InputStream stream;
     private String fullRequest;
     private HTTPRequest request;
 
-    public HttpRequestParser(Socket socket, HTTPRequest request) throws IOException{
-        this.stream = socket.getInputStream();
-        this.request = request;
-        parseInput(stream);
+    //more readable regex
+    private static HashMap<String, String> regex;
+    static {
+        regex = new HashMap<>();
+        regex.put("carriageReturn", "\\R"); // java new line os independent
+        regex.put("headerSplit", "(?s:.)+?(?<=Content-Length: \\d{0,100}\\R)"); // everything before (and including Content-Length: ... \r\n)
     }
 
-    private void parseInput(InputStream stream) throws IOException{
 
-        fullRequest = readFullMessage(stream);
+    public HttpRequestParser(Socket socket, HTTPRequest request) throws IOException{
+        try{
+        fullRequest = readFullMessage(socket);
+        this.request = request;
+        parseInput();
+        } catch (Exception e){
+            System.err.println("Error occurred when creating request");
+            e.printStackTrace();
+            return;
+        }
+    }
 
-        splitHeader(fullRequest);
+    private void parseInput() throws IOException{
 
-        switch (request.getMethod()){
+        //fullRequest = readFullMessage();
+
+        // [0] for getting just the first line of the full request
+        splitHeader(fullRequest.split(regex.get("carriageReturn"))[0]); 
+
+        switch (request.getMethod()) {
+
+            // request body is disregarded if there is one
             case "GET":
             case "HEAD":
-            //request body is disregarded if there is one
-            break;
+                parseHeaders(fullRequest);
+                break;
+
+            // requests MUST have body but can be empty
             case "POST":
             case "PUT":
-            //requests should have body but can be empty
-            break;
+                if (fullRequest.contains("Content-Length: ")) {
+
+                    // removing body (it's in [1])
+                    String[] headerBodySplit = fullRequest.split(regex.get("headerSplit")); 
+                    parseHeaders(headerBodySplit[0]);
+                    if (headerBodySplit.length > 1) {
+                        request.setBody(headerBodySplit[1].trim());
+                    }
+                } else {
+                    // TODO
+                    // CREATE FLAG FOR IMPROPER FORMAT
+                }
+                break;
+
+            // requests MAY have body
             case "DELETE":
-            //requests MAY have body
-            break;
+                if (fullRequest.contains("Content-Length: ")) {
+                    String[] headerBodySplit = fullRequest.split(regex.get("headerSplit")); // removing body (it's in
+                                                                                            // [1])
+                    parseHeaders(headerBodySplit[0]);
+                    if (headerBodySplit.length > 1) {
+                        request.setBody(headerBodySplit[1].trim());
+                    }
+                } else {
+
+                }
+                break;
+
             default:
-            //TODO
-            //RAISE FLAG FOR UNSUPPORTED METHOD
+                // TODO
+                // RAISE FLAG FOR UNSUPPORTED METHOD
+                break;
         }
     }
 
-    private void splitHeader(String fullHeader){
-        String[] arr = fullHeader.split("\\s+");
-        if(arr.length < 3){
-            //TODO
-            //CREATE FLAG FOR IMPROPER FORMAT
+    // ensures that entire http request is read in (because requests are parsed in
+    // series of packets and those may not be loaded into memory instantly)
+    private String readFullMessage(Socket socket) throws IOException{
+        BufferedInputStream stream = new BufferedInputStream(socket.getInputStream());
+        StringBuilder result = new StringBuilder();
+        while (stream.available() > 0) {
+            result.append((char) stream.read());
+        }
+        return result.toString();
+    }
+
+    private void splitHeader(String fullHeader) {
+        String[] splitHeader = fullHeader.split("\\s+");
+
+        if (splitHeader.length < 3) {
+            System.out.println("header not long enough");
+            // TODO
+            // CREATE FLAG FOR IMPROPER FORMAT
         } else {
-            this.request.setHeader(arr);
+            this.request.setMethodAndIDs(splitHeader);
         }
     }
-    private String readFullMessage(InputStream stream) throws IOException {
-            StringBuilder result = new StringBuilder();
-            do {
-                result.append((char) stream.read());
-            } while (stream.available() > 0);
-            return result.toString();
+
+    private void parseHeaders(String headers) {
+        String[] carriageSplit = headers.split(regex.get("carriageReturn"));
+
+        for (String line : carriageSplit) {
+            String identAndData[] = line.split(": ");
+            String removeDash = identAndData[0].trim().toUpperCase().replace("-", "");
+
+            // ensures that header is valid and recognized header according to standards
+            if (Header.contains(removeDash)) {
+                request.setHeader(Header.valueOf(removeDash), identAndData[1]);
+            } else {
+                // throw flag for unrecognized header
+                // DOES NOT HAVE TO STOP REQUEST
+            }
+
+        }
     }
-    public String getFullRequest(){
+
+    public String getFullRequest() {
+
         return fullRequest;
     }
 }

@@ -11,7 +11,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 
 public class Handler implements Runnable {
-    
+
     private ServerSocket serverSocket;
     private Socket socket;
     private OutputStream outputStream;
@@ -24,16 +24,25 @@ public class Handler implements Runnable {
     @Override
     public void run() {
         try {
-           this.socketBind();
-           this.listen();
+            this.socketBind();
+            this.listen();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void socketBind() throws IOException {
-        serverSocket = new ServerSocket(port);
-        System.out.println("Listening on port: " + port);
+        //professor try catch code
+        try {
+            serverSocket = new ServerSocket(port);
+            System.out.println("Listening on port: " + port);
+          } catch (IOException e) {
+            System.err.println(
+              String.format("Failed to open server on port (%d), exiting...", port)
+            );
+            e.printStackTrace();
+            return;
+          } 
     }
 
     private void listen() throws IOException {
@@ -42,7 +51,6 @@ public class Handler implements Runnable {
             System.out.println("Connection Established: " + socket.getInetAddress());
 
             HTTPRequest request = new HTTPRequest(socket);
-
             HTTPResponse response = new HTTPResponse();
             response.addHeader("Connection", "close");
 
