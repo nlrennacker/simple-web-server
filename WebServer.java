@@ -1,14 +1,20 @@
 import web.server.configuration.MimeTypes;
 import web.server.configuration.utils.ConfigurationReader;
 import web.server.configuration.HttpdConf;
+import web.handler.Handler;
 
+import java.io.IOException;
 import java.util.Map;
 
 public class WebServer {
-    public static void main(String[] args) {
-        HttpdConf httpdConf = new HttpdConf(ConfigurationReader.readConfiguration("conf/httpd.conf"));
-        MimeTypes mimeTypes = new MimeTypes(ConfigurationReader.readConfiguration("conf/mime.types"));
+    private static final Integer DEFAULT_PORT = 8080;
 
+    private static HttpdConf httpdConf;
+    private static MimeTypes mimeTypes;
+
+    public static void main(String[] args) throws IOException {
+        loadConfigs();
+        startServer();
         // Test code
         httpdConf.getListen().ifPresentOrElse(
             opt -> System.out.printf("httpd listen: %s%n", opt),
@@ -46,5 +52,14 @@ public class WebServer {
         for (Map.Entry<String, String> entry : mimeTypes.getMimeTypes().entrySet()) {
             System.out.printf("mime type mapping: %s %s%n", entry.getKey(), entry.getValue());
         }
+    }
+    private static void loadConfigs() throws IOException {
+        httpdConf = new HttpdConf(ConfigurationReader.readConfiguration("conf/httpd.conf"));
+        mimeTypes = new MimeTypes(ConfigurationReader.readConfiguration("conf/mime.types"));
+    }
+
+    private static void startServer() {
+        Handler serverStarter = new Handler(httpdConf.getListen().orElse(DEFAULT_PORT));
+        serverStarter.run();
     }
 }
