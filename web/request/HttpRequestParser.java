@@ -66,8 +66,8 @@ public class HttpRequestParser {
             // requests MAY have body
             case "DELETE":
                 if (fullRequest.contains("Content-Length: ")) {
-                    String[] headerBodySplit = fullRequest.split(regex.get("headerSplit")); // removing body (it's in
-                                                                                            // [1])
+                    // removing body (it's in [1])
+                    String[] headerBodySplit = fullRequest.split(regex.get("headerSplit")); 
                     parseHeaders(headerBodySplit[0]);
                     if (headerBodySplit.length > 1) {
                         request.setBody(headerBodySplit[1].trim());
@@ -90,7 +90,7 @@ public class HttpRequestParser {
         BufferedInputStream stream = new BufferedInputStream(socket.getInputStream());
         StringBuilder result = new StringBuilder();
         while (stream.available() > 0) {
-            result.append((char) stream.read());
+                result.append((char) stream.read());
         }
         return result.toString();
     }
@@ -109,6 +109,9 @@ public class HttpRequestParser {
 
     private void parseHeaders(String headers) {
         String[] carriageSplit = headers.split(regex.get("carriageReturn"));
+        for(String split : carriageSplit){
+            System.out.println(split);
+        }
 
         for (String line : carriageSplit) {
             String identAndData[] = line.split(": ");
@@ -125,6 +128,12 @@ public class HttpRequestParser {
         }
     }
 
+    //TODO
+    //REMOVE OR CHANGE THIS FUNCTIONALITY
+    /**
+     * Returns the full http Request for debug purposes
+     * @return
+     */
     public String getFullRequest() {
 
         return fullRequest;
