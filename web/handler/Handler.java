@@ -22,9 +22,9 @@ public class Handler implements Runnable {
     private static final String DEFAULT_MIME_TYPE = "text/text";
     private static final String HT_ACCESS_FILENAME = ".htaccess";
 
+    private final Socket socket;
     private final HttpdConf httpdConf;
     private final MimeTypes mimeTypes;
-    private final Socket socket;
 
     public Handler(Socket socket, HttpdConf httpdConf, MimeTypes mimeTypes) {
         this.socket = socket;
