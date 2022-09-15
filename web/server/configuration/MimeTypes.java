@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class MimeTypes {
     private final Map<String, String> mimeTypes;
@@ -27,7 +28,7 @@ public class MimeTypes {
         return mimeTypes;
     }
 
-    public String getMimeTypeForExtension(String extension) {
-        return mimeTypes.get(extension);
+    public Optional<String> getMimeTypeForExtension(String extension) {
+        return Optional.ofNullable(mimeTypes.get(extension));
     }
 }

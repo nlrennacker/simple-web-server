@@ -19,27 +19,22 @@ public class HttpRequestParser {
     }
 
 
-    public HttpRequestParser(Socket socket, HTTPRequest request) throws IOException{
-        try{
-        fullRequest = readFullMessage(socket);
-        this.request = request;
-        parseInput();
+    public HttpRequestParser(Socket socket, HTTPRequest request) throws IOException {
+        try {
+            fullRequest = readFullMessage(socket);
+            this.request = request;
+            parseInput();
         } catch (Exception e){
             System.err.println("Error occurred when creating request");
             e.printStackTrace();
-            return;
         }
     }
 
-    private void parseInput() throws IOException{
-
-        //fullRequest = readFullMessage();
-
+    private void parseInput() throws IOException {
         // [0] for getting just the first line of the full request
         splitHeader(fullRequest.split(regex.get("carriageReturn"))[0]); 
 
         switch (request.getMethod()) {
-
             // request body is disregarded if there is one
             case "GET":
             case "HEAD":
@@ -50,7 +45,6 @@ public class HttpRequestParser {
             case "POST":
             case "PUT":
                 if (fullRequest.contains("Content-Length: ")) {
-
                     // removing body (it's in [1])
                     String[] headerBodySplit = fullRequest.split(regex.get("headerSplit")); 
                     parseHeaders(headerBodySplit[0]);
@@ -86,12 +80,12 @@ public class HttpRequestParser {
 
     // ensures that entire http request is read in (because requests are parsed in
     // series of packets and those may not be loaded into memory instantly)
-    private String readFullMessage(Socket socket) throws IOException{
+    private String readFullMessage(Socket socket) throws IOException {
         BufferedInputStream stream = new BufferedInputStream(socket.getInputStream());
         StringBuilder result = new StringBuilder();
-        while (stream.available() > 0) {
-                result.append((char) stream.read());
-        }
+        do {
+            result.append((char) stream.read());
+        } while (stream.available() > 0);
         return result.toString();
     }
 
@@ -109,9 +103,6 @@ public class HttpRequestParser {
 
     private void parseHeaders(String headers) {
         String[] carriageSplit = headers.split(regex.get("carriageReturn"));
-        for(String split : carriageSplit){
-            System.out.println(split);
-        }
 
         for (String line : carriageSplit) {
             String identAndData[] = line.split(": ");
@@ -135,7 +126,6 @@ public class HttpRequestParser {
      * @return
      */
     public String getFullRequest() {
-
         return fullRequest;
     }
 }

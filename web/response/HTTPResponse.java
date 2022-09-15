@@ -1,6 +1,5 @@
 package web.response;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -79,19 +78,12 @@ public class HTTPResponse {
         System.out.println(this);
 
         // Write all headers
-        //TODO
-        //jank error catching, remove once proper error responses are added
-        try{
         outputStream.write(String.format("%s\r\n", getStatusLine()).getBytes(StandardCharsets.ISO_8859_1));
         for (Map.Entry<String, String> header : this.headers.entrySet()) {
             outputStream.write(String.format("%s: %s\r\n", header.getKey(), header.getValue()).getBytes(StandardCharsets.ISO_8859_1));
         }
         outputStream.write("\r\n".getBytes(StandardCharsets.ISO_8859_1)); // There must be CRLF after the status line and headers.
-        } catch (Exception e){
-            System.err.println("Error occured when writing response headers...");
-            e.printStackTrace();
-            return;
-        }
+
         // Write body
         if (this.body != null) {
             outputStream.write(this.body);
