@@ -43,7 +43,7 @@ public class Handler implements Runnable {
 
             if (!request.isValidRequest()) {
                 response.setStatusCode(400);
-                writeResponse(socket, response);
+                writeResponse(response);
                 return;
             }
 
@@ -75,18 +75,18 @@ public class Handler implements Runnable {
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.MISSING_AUTH)) {
                 response.setStatusCode(401);
                 response.addHeader("WWW-Authenticate", authorizationChecker.getWWWAuthenticateHeader());
-                writeResponse(socket, response);
+                writeResponse(response);
                 return;
             }
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.INVALID)) {
                 response.setStatusCode(403);
-                writeResponse(socket, response);
+                writeResponse(response);
                 return;
             }
 
             if (Files.notExists(requestPath)) {
                 response.setStatusCode(404);
-                writeResponse(socket, response);
+                writeResponse(response);
                 return;
             }
 
@@ -95,12 +95,12 @@ public class Handler implements Runnable {
                     String mimeType = this.mimeTypes.getMimeTypeForExtension(getFileExtension(requestPath)).orElse(DEFAULT_MIME_TYPE);
                     response.addHeader("Content-Type", mimeType);
                     response.setBody(Files.readAllBytes(requestPath));
-                    writeResponse(socket, response);
+                    writeResponse(response);
                     return;
                 }
                 default -> {
                     response.setStatusCode(200);
-                    writeResponse(socket, response);
+                    writeResponse(response);
                     return;
                 }
             }
@@ -110,15 +110,13 @@ public class Handler implements Runnable {
         }
     }
 
-    private void writeResponse(Socket socket, HTTPResponse response) throws IOException {
-        try {
-            OutputStream outputStream = socket.getOutputStream();
+    private void writeResponse(HTTPResponse response) throws IOException {
+        try (OutputStream outputStream = this.socket.getOutputStream()) {
             response.writeResponse(outputStream);
             outputStream.flush();
-            outputStream.close();
         } catch (SocketException e) {
             // Handle the case where client closed the connection while server was writing to it
-            socket.close();
+            this.socket.close();
         }
     }
 
