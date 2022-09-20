@@ -8,7 +8,7 @@ import java.util.HashMap;
 public class HTTPRequest {
 
     private InetAddress INet;
-    private String method = "none";
+    private String method = "NONE";
     private String identifier;
     private String version;
     private HashMap<Header,String> headers = new HashMap<>();
@@ -92,5 +92,9 @@ public class HTTPRequest {
      */
     public String getFullRequest() {
         return fullRequest;
+    }
+
+    public boolean isValidRequest() {
+        return method != null && identifier != null && version != null;
     }
 }
