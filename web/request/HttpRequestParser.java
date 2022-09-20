@@ -93,7 +93,6 @@ public class HttpRequestParser {
         String[] splitHeader = fullHeader.split("\\s+");
 
         if (splitHeader.length < 3) {
-            System.out.println("header not long enough");
             // TODO
             // CREATE FLAG FOR IMPROPER FORMAT
         } else {
@@ -108,7 +107,7 @@ public class HttpRequestParser {
             String identAndData[] = line.split(": ");
             String removeDash = identAndData[0].trim().toUpperCase().replace("-", "");
 
-            // ensures that header is valid and recognized header according to standards
+            // ensures that header is valid and recognized according to standards
             if (Header.contains(removeDash)) {
                 request.setHeader(Header.valueOf(removeDash), identAndData[1]);
             } else {

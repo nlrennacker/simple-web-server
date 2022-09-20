@@ -1,13 +1,11 @@
 package web.request;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
 
 public class HTTPRequest {
 
-    private InetAddress INet;
     private String method = "NONE";
     private String identifier;
     private String version;
@@ -57,6 +55,10 @@ public class HTTPRequest {
      */
     public void setHeader(Header header, String value){
         headers.put(header, value);
+    }
+
+    public boolean hasHeader(Header header){
+        return headers.containsKey(header);
     }
 
     /**

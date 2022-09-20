@@ -1,9 +1,11 @@
 package web.handler;
 
 import web.request.HTTPRequest;
+import web.request.Header;
 import web.response.HTTPResponse;
 import web.server.configuration.HttpdConf;
 import web.server.configuration.MimeTypes;
+import web.util.Util;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -54,7 +56,8 @@ public class Handler implements Runnable {
                 for (Map.Entry<String, String> scriptAlias : httpdConf.getScriptAliases().get().entrySet()) {
                     if (requestUri.contains(scriptAlias.getKey())) {
                         isScriptAliased = true;
-                        requestUri = requestUri.replaceFirst(Pattern.quote(scriptAlias.getKey()), Pattern.quote(scriptAlias.getValue()));
+                        requestUri = requestUri.replaceFirst(Pattern.quote(scriptAlias.getKey()),
+                                Pattern.quote(scriptAlias.getValue()));
                         break;
                     }
                 }
@@ -66,12 +69,17 @@ public class Handler implements Runnable {
                 requestPath = Paths.get(requestUri);
             }
             if (Files.isDirectory(requestPath)) {
-                requestPath = Paths.get(requestPath.toString(), this.httpdConf.getDirectoryIndex().orElse(DEFAULT_DIRECTORY_INDEX));
+                requestPath = Paths.get(requestPath.toString(),
+                        this.httpdConf.getDirectoryIndex().orElse(DEFAULT_DIRECTORY_INDEX));
             }
 
+            // side note for debugging, http auth is stored per browser, so if viewing auth
+            // in browser window (as opposed to postman) you will not get the auth popup
+            // unless you close and reopen the browser each time
             Path htAccessPath = Paths.get(requestPath.toAbsolutePath().getParent().toString(), HT_ACCESS_FILENAME);
             AuthorizationChecker authorizationChecker = new AuthorizationChecker(htAccessPath);
-            AuthorizationChecker.AuthorizationResult authorizationResult = authorizationChecker.checkAuthorization(request);
+            AuthorizationChecker.AuthorizationResult authorizationResult = authorizationChecker
+                    .checkAuthorization(request);
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.MISSING_AUTH)) {
                 response.setStatusCode(401);
                 response.addHeader("WWW-Authenticate", authorizationChecker.getWWWAuthenticateHeader());
@@ -92,11 +100,20 @@ public class Handler implements Runnable {
 
             switch (request.getMethod().toUpperCase()) {
                 case "GET" -> {
-                    String mimeType = this.mimeTypes.getMimeTypeForExtension(getFileExtension(requestPath)).orElse(DEFAULT_MIME_TYPE);
+                    if (request.hasHeader(Header.IFMODIFIEDSINCE) && Util.compareDateTime(htAccessPath.toFile(), request.getHeaderValue(Header.IFMODIFIEDSINCE))) {
+                        response.setStatusCode(304);
+                        writeResponse(response);
+                        return;
+                    }
+                    String mimeType = this.mimeTypes.getMimeTypeForExtension(getFileExtension(requestPath))
+                            .orElse(DEFAULT_MIME_TYPE);
                     response.addHeader("Content-Type", mimeType);
                     response.setBody(Files.readAllBytes(requestPath));
                     writeResponse(response);
                     return;
+                }
+                case "PUT" -> {
+
                 }
                 default -> {
                     response.setStatusCode(200);
@@ -110,12 +127,18 @@ public class Handler implements Runnable {
         }
     }
 
+
+    private void createResponse(){
+
+    }
+
     private void writeResponse(HTTPResponse response) throws IOException {
         try (OutputStream outputStream = this.socket.getOutputStream()) {
             response.writeResponse(outputStream);
             outputStream.flush();
         } catch (SocketException e) {
-            // Handle the case where client closed the connection while server was writing to it
+            // Handle the case where client closed the connection while server was writing
+            // to it
             this.socket.close();
         }
     }

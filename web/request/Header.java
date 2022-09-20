@@ -48,7 +48,7 @@ public enum Header {
     /**
      * Returns a boolean value based on whether supplied string matches any preset recognized http header
      * String should be all upper case with only alphabet characters to match the respective enums
-     * @param s a string to match with any respective enum
+     * @param a string to match with any respective enum
      * @return boolean value based on whether enum match was found
      */
     public static boolean contains(String s){
