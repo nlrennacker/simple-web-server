@@ -8,7 +8,7 @@ import java.util.HashMap;
 public class HttpRequestParser {
 
     private String fullRequest;
-    private HTTPRequest request;
+    private HttpRequest request;
 
     //more readable regex
     private static HashMap<String, String> regex;
@@ -19,7 +19,7 @@ public class HttpRequestParser {
     }
 
 
-    public HttpRequestParser(Socket socket, HTTPRequest request) throws IOException {
+    public HttpRequestParser(Socket socket, HttpRequest request) throws IOException {
         try {
             fullRequest = readFullMessage(socket);
             this.request = request;

@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
 
-public class HTTPRequest {
+public class HttpRequest {
 
     private String method = "NONE";
     private String identifier;
@@ -13,7 +13,7 @@ public class HTTPRequest {
     private String body = "";
     private String fullRequest = "";
 
-    public HTTPRequest(Socket socket) throws IOException{
+    public HttpRequest(Socket socket) throws IOException{
         //this.INet = socket.getInetAddress();
         HttpRequestParser parser = new HttpRequestParser(socket, this);
         System.out.println("Request Received: \n" + parser.getFullRequest());

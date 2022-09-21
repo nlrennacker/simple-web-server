@@ -1,11 +1,11 @@
 package web.handler;
 
-import web.request.HTTPRequest;
+import web.authorization.AuthorizationChecker;
+import web.request.HttpRequest;
 import web.request.Header;
+import web.resource.ConfigResource;
+import web.resource.HttpResource;
 import web.response.HTTPResponse;
-import web.server.configuration.HttpdConf;
-import web.server.configuration.MimeTypes;
-import web.util.Util;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -14,24 +14,17 @@ import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 public class Handler implements Runnable {
 
-    private static final String DEFAULT_DIRECTORY_INDEX = "index.html";
     private static final String DEFAULT_MIME_TYPE = "text/text";
     private static final String HT_ACCESS_FILENAME = ".htaccess";
 
     private final Socket socket;
-    private final HttpdConf httpdConf;
-    private final MimeTypes mimeTypes;
 
-    public Handler(Socket socket, HttpdConf httpdConf, MimeTypes mimeTypes) {
+    public Handler(Socket socket) {
         this.socket = socket;
-        this.httpdConf = httpdConf;
-        this.mimeTypes = mimeTypes;
     }
 
     @Override
@@ -39,7 +32,7 @@ public class Handler implements Runnable {
         try {
             System.out.println("Connection Established: " + socket.getLocalSocketAddress());
 
-            HTTPRequest request = new HTTPRequest(socket);
+            HttpRequest request = new HttpRequest(socket);
             HTTPResponse response = new HTTPResponse();
             response.addHeader("Connection", "close");
 
@@ -49,34 +42,12 @@ public class Handler implements Runnable {
                 return;
             }
 
-            // Resolve request URI to an absolute path
-            String requestUri = request.getID();
-            boolean isScriptAliased = false;
-            if (httpdConf.getScriptAliases().isPresent()) {
-                for (Map.Entry<String, String> scriptAlias : httpdConf.getScriptAliases().get().entrySet()) {
-                    if (requestUri.contains(scriptAlias.getKey())) {
-                        isScriptAliased = true;
-                        requestUri = requestUri.replaceFirst(Pattern.quote(scriptAlias.getKey()),
-                                Pattern.quote(scriptAlias.getValue()));
-                        break;
-                    }
-                }
-            }
-            Path requestPath;
-            if (!isScriptAliased) {
-                requestPath = Paths.get(this.httpdConf.getDocumentRoot().get(), requestUri);
-            } else {
-                requestPath = Paths.get(requestUri);
-            }
-            if (Files.isDirectory(requestPath)) {
-                requestPath = Paths.get(requestPath.toString(),
-                        this.httpdConf.getDirectoryIndex().orElse(DEFAULT_DIRECTORY_INDEX));
-            }
+            HttpResource resource = new HttpResource(request);
 
             // side note for debugging, http auth is stored per browser, so if viewing auth
             // in browser window (as opposed to postman) you will not get the auth popup
             // unless you close and reopen the browser each time
-            Path htAccessPath = Paths.get(requestPath.toAbsolutePath().getParent().toString(), HT_ACCESS_FILENAME);
+            Path htAccessPath = Paths.get(resource.getPath().toAbsolutePath().getParent().toString(), HT_ACCESS_FILENAME);
             AuthorizationChecker authorizationChecker = new AuthorizationChecker(htAccessPath);
             AuthorizationChecker.AuthorizationResult authorizationResult = authorizationChecker
                     .checkAuthorization(request);
@@ -92,7 +63,7 @@ public class Handler implements Runnable {
                 return;
             }
 
-            if (Files.notExists(requestPath)) {
+            if (Files.notExists(resource.getPath())) {
                 response.setStatusCode(404);
                 writeResponse(response);
                 return;
@@ -100,15 +71,15 @@ public class Handler implements Runnable {
 
             switch (request.getMethod().toUpperCase()) {
                 case "GET" -> {
-                    if (request.hasHeader(Header.IFMODIFIEDSINCE) && Util.compareDateTime(htAccessPath.toFile(), request.getHeaderValue(Header.IFMODIFIEDSINCE))) {
+                    if (request.hasHeader(Header.IFMODIFIEDSINCE) && resource.compareDateTime(request.getHeaderValue(Header.IFMODIFIEDSINCE))) {
                         response.setStatusCode(304);
                         writeResponse(response);
                         return;
                     }
-                    String mimeType = this.mimeTypes.getMimeTypeForExtension(getFileExtension(requestPath))
+                    String mimeType = ConfigResource.getMimeTypes().getMimeTypeForExtension(getFileExtension(resource.getPath()))
                             .orElse(DEFAULT_MIME_TYPE);
                     response.addHeader("Content-Type", mimeType);
-                    response.setBody(Files.readAllBytes(requestPath));
+                    response.setBody(Files.readAllBytes(resource.getPath()));
                     writeResponse(response);
                     return;
                 }
@@ -127,10 +98,6 @@ public class Handler implements Runnable {
         }
     }
 
-
-    private void createResponse(){
-
-    }
 
     private void writeResponse(HTTPResponse response) throws IOException {
         try (OutputStream outputStream = this.socket.getOutputStream()) {
