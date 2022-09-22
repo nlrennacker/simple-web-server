@@ -94,7 +94,7 @@ public class Handler implements Runnable {
                 ProcessBuilder processBuilder = new ProcessBuilder(requestPath.toString());
 
                 Map<String, String> env = processBuilder.environment();
-                env.put("HTTP_VERSION", "1.1");
+                env.put("SERVER_PROTOCOL", "HTTP/1.1");
                 request.getQueryString().ifPresent((queryString) -> env.put("QUERY_STRING", queryString));
                 Map<Header, String> requestHeaders = request.getHeaders();
                 for (Map.Entry<Header, String> requestHeader : requestHeaders.entrySet()) {
