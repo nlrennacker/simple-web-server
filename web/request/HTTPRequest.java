@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class HTTPRequest {
 
@@ -47,8 +48,26 @@ public class HTTPRequest {
      * Returns the ID of the Http Request
      * @return String Identifier
      */
-    public String getID(){
-        return identifier;
+    public String getID() {
+        int indexOfInterrobang = identifier.indexOf('?');
+        if (indexOfInterrobang == -1) {
+            return identifier;
+        } else {
+            return identifier.substring(0, indexOfInterrobang);
+        }
+    }
+
+    /**
+     * Returns the ID of the Http Request
+     * @return String Identifier
+     */
+    public Optional<String> getQueryString() {
+        int indexOfInterrobang = identifier.indexOf('?');
+        if (indexOfInterrobang == -1) {
+            return Optional.empty();
+        } else {
+            return Optional.ofNullable(identifier.substring(indexOfInterrobang + 1));
+        }
     }
 
     /**

@@ -95,10 +95,7 @@ public class Handler implements Runnable {
 
                 Map<String, String> env = processBuilder.environment();
                 env.put("HTTP_VERSION", "1.1");
-                String queryString = request.getID().lastIndexOf('?') == -1 ?
-                        "" :
-                        request.getID().substring(request.getID().lastIndexOf('?'));
-                env.put("QUERY_STRING", queryString);
+                request.getQueryString().ifPresent((queryString) -> env.put("QUERY_STRING", queryString));
                 Map<Header, String> requestHeaders = request.getHeaders();
                 for (Map.Entry<Header, String> requestHeader : requestHeaders.entrySet()) {
                     env.put("HTTP_".concat(requestHeader.getKey().toString()), requestHeader.getValue());
