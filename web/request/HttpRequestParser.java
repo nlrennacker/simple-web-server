@@ -106,7 +106,7 @@ public class HttpRequestParser {
 
         for (String line : carriageSplit) {
             String identAndData[] = line.split(": ");
-            String removeDash = identAndData[0].trim().toUpperCase().replace("-", "");
+            String removeDash = identAndData[0].trim().toUpperCase().replace("-", "_");
 
             // ensures that header is valid and recognized header according to standards
             if (Header.contains(removeDash)) {
