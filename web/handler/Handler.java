@@ -163,9 +163,12 @@ public class Handler implements Runnable {
     private void writeCgiResponse(HTTPResponse response, Process process) throws IOException {
         try (OutputStream outputStream = this.socket.getOutputStream()) {
             response.writeMinimalCgiResponse(outputStream);
-            while(process.getInputStream().available() > 0) {
-                outputStream.write(process.getInputStream().read());
-            }
+            do {
+                int i = process.getInputStream().read();
+                if (i != -1) {
+                    outputStream.write(i);
+                }
+            } while(process.getInputStream().available() > 0);
             outputStream.flush();
         } catch (SocketException e) {
             // Handle the case where client closed the connection while server was writing to it
