@@ -107,6 +107,13 @@ public class Handler implements Runnable {
         } catch (Exception e) {
             System.out.println("Error while handling request:");
             e.printStackTrace();
+
+            try {
+                HTTPResponse response = new HTTPResponse();
+                response.addHeader("Connection", "close");
+                response.setStatusCode(500);
+                writeResponse(response);
+            } catch (IOException ignored) {}
         }
     }
 
