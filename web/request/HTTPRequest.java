@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Map;
 
 public class HTTPRequest {
 
@@ -66,6 +67,10 @@ public class HTTPRequest {
      */
     public String getHeaderValue(Header header){
         return headers.get(header);
+    }
+
+    public Map<Header,String> getHeaders(){
+        return headers;
     }
     
     /**

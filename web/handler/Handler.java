@@ -1,6 +1,7 @@
 package web.handler;
 
 import web.request.HTTPRequest;
+import web.request.Header;
 import web.response.HTTPResponse;
 import web.server.configuration.HttpdConf;
 import web.server.configuration.MimeTypes;
@@ -14,7 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 public class Handler implements Runnable {
 
@@ -54,14 +54,14 @@ public class Handler implements Runnable {
                 for (Map.Entry<String, String> scriptAlias : httpdConf.getScriptAliases().get().entrySet()) {
                     if (requestUri.contains(scriptAlias.getKey())) {
                         isScriptAliased = true;
-                        requestUri = requestUri.replaceFirst(Pattern.quote(scriptAlias.getKey()), Pattern.quote(scriptAlias.getValue()));
+                        requestUri = requestUri.replace(scriptAlias.getKey(), scriptAlias.getValue());
                         break;
                     }
                 }
             }
             Path requestPath;
             if (!isScriptAliased) {
-                requestPath = Paths.get(this.httpdConf.getDocumentRoot().get(), requestUri);
+                requestPath = Paths.get(this.httpdConf.getDocumentRoot().orElseThrow(), requestUri);
             } else {
                 requestPath = Paths.get(requestUri);
             }
@@ -88,6 +88,39 @@ public class Handler implements Runnable {
                 response.setStatusCode(404);
                 writeResponse(response);
                 return;
+            }
+
+            if (isScriptAliased) {
+                ProcessBuilder processBuilder = new ProcessBuilder(requestPath.toString());
+
+                Map<String, String> env = processBuilder.environment();
+                env.put("HTTP_VERSION", "1.1");
+                String queryString = request.getID().lastIndexOf('?') == -1 ?
+                        "" :
+                        request.getID().substring(request.getID().lastIndexOf('?'));
+                env.put("QUERY_STRING", queryString);
+                Map<Header, String> requestHeaders = request.getHeaders();
+                for (Map.Entry<Header, String> requestHeader : requestHeaders.entrySet()) {
+                    env.put("HTTP_".concat(requestHeader.getKey().toString()), requestHeader.getValue());
+                }
+
+                byte[] body = request.getBody().getBytes();
+                try {
+                    Process process = processBuilder.start();
+
+                    OutputStream outputStream = process.getOutputStream();
+                    outputStream.write(body, 0, body.length);
+                    outputStream.flush();
+                    outputStream.close();
+                    response.setStatusCode(200);
+                    writeCgiResponse(response, process);
+                    return;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    response.setStatusCode(500);
+                    writeResponse(response);
+                    return;
+                }
             }
 
             switch (request.getMethod().toUpperCase()) {
@@ -120,6 +153,19 @@ public class Handler implements Runnable {
     private void writeResponse(HTTPResponse response) throws IOException {
         try (OutputStream outputStream = this.socket.getOutputStream()) {
             response.writeResponse(outputStream);
+            outputStream.flush();
+        } catch (SocketException e) {
+            // Handle the case where client closed the connection while server was writing to it
+            this.socket.close();
+        }
+    }
+
+    private void writeCgiResponse(HTTPResponse response, Process process) throws IOException {
+        try (OutputStream outputStream = this.socket.getOutputStream()) {
+            response.writeMinimalCgiResponse(outputStream);
+            while(process.getInputStream().available() > 0) {
+                outputStream.write(process.getInputStream().read());
+            }
             outputStream.flush();
         } catch (SocketException e) {
             // Handle the case where client closed the connection while server was writing to it
