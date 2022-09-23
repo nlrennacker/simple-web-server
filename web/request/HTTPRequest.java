@@ -100,7 +100,7 @@ public class HttpRequest {
         this.badRequest = true;
     }
 
-    public boolean isValidRequest() {
+    public boolean isInvalidRequest() {
         return badRequest;
     }
 }
