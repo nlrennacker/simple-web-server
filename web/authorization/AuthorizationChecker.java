@@ -9,6 +9,7 @@ import web.server.configuration.utils.ConfigurationReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 
 public class AuthorizationChecker {
     public enum AuthorizationResult {
@@ -18,6 +19,7 @@ public class AuthorizationChecker {
     }
 
     private HtAccess htAccess;
+    private String checkedUser;
 
     public AuthorizationChecker(Path htAccessPath) {
         try {
@@ -37,6 +39,10 @@ public class AuthorizationChecker {
                     String authorization = request.getHeaderValue(Header.AUTHORIZATION);
                     if (authorization == null || authorization.isEmpty()) {
                         return AuthorizationResult.MISSING_AUTH;
+                    }
+                    String[] tokenizedAuthInfo = HtPassword.tokenizeAuthInfo(authorization);
+                    if (tokenizedAuthInfo.length >= 1) {
+                        this.checkedUser = tokenizedAuthInfo[0];
                     }
                     HtPassword htPassword = new HtPassword(ConfigurationReader.readConfiguration(htAccessConfiguration.get("AuthUserFile")));
                     if (htPassword.isAuthorized(authorization)) {
@@ -69,5 +75,9 @@ public class AuthorizationChecker {
                 return "";
             }
         }
+    }
+
+    public Optional<String> getCheckedUser() {
+        return Optional.ofNullable(this.checkedUser);
     }
 }

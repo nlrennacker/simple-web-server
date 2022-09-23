@@ -16,9 +16,8 @@ public class HttpRequest {
     private String fullRequest = "";
     private boolean badRequest = false;
 
-    public HttpRequest(Socket socket) throws IOException{
-        //this.INet = socket.getInetAddress();
-        HttpRequestParser parser = new HttpRequestParser(socket, this);
+    public HttpRequest(Socket socket) throws IOException {
+        new HttpRequestParser(socket, this);
     }
 
     /**
@@ -46,7 +45,7 @@ public class HttpRequest {
      * Returns the ID of the Http Request
      * @return String Identifier
      */
-     
+
     public String getID() {
         int indexOfInterrobang = identifier.indexOf('?');
         if (indexOfInterrobang == -1) {
@@ -68,7 +67,7 @@ public class HttpRequest {
             return Optional.ofNullable(identifier.substring(indexOfInterrobang + 1));
         }
     }
-    
+
     /**
      * Sets the specified Header (enum value) with its corresponding value in a Hashmap<Header, String>
      * @param header enum
@@ -96,7 +95,7 @@ public class HttpRequest {
         return headers;
     }
 
-    
+
     /**
      * Sets the http request body
      * @param body string
@@ -129,5 +128,14 @@ public class HttpRequest {
 
     public boolean isInvalidRequest() {
         return badRequest;
+    }
+
+    public String getRequestLine() {
+        return String.format(
+                "%s %s %s",
+                this.method,
+                this.getID(),
+                "HTTP/1.1"
+        );
     }
 }

@@ -49,6 +49,10 @@ public class HttpResponse {
         this.statusCode = statusCode;
     }
 
+    public int getStatusCode() {
+        return this.statusCode;
+    }
+
     public void addHeader(String key, String value) {
         this.headers.put(key, value);
     }
@@ -78,10 +82,6 @@ public class HttpResponse {
         if (this.body != null) {
             this.headers.put("Content-Length", String.valueOf(this.body.length));
         }
-
-        // TODO: Debugging code, remove
-        System.out.println("Sending response:");
-        System.out.println(this);
 
         // Write all headers
         outputStream.write(String.format("%s\r\n", getStatusLine()).getBytes(StandardCharsets.ISO_8859_1));
