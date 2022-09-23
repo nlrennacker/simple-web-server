@@ -51,7 +51,7 @@ public class HttpRequestParser {
                 if (m.find()) {
                     String headers = m.group(0);
                     String body = fullRequest.substring(m.group(0).length()).trim();
-                    parseHeaders(m.group(0));
+                    parseHeaders(headers);
                     if (!body.equals("")) {
                         request.setBody(body);
                     }
