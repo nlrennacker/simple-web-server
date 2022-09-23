@@ -18,6 +18,7 @@ public class HTTPRequest {
     private String fullRequest = "";
 
     public HTTPRequest(Socket socket) throws IOException {
+        new HttpRequestParser(socket, this);
     }
 
     /**
