@@ -48,12 +48,12 @@ public enum Header {
     /**
      * Returns a boolean value based on whether supplied string matches any preset recognized http header
      * String should be all upper case with only alphabet characters to match the respective enums
-     * @param s a string to match with any respective enum
+     * @param toMatch a string to match with any respective enum
      * @return boolean value based on whether enum match was found
      */
-    public static boolean contains(String s){
+    public static boolean contains(String toMatch){
         for(Header header: Header.values())
-             if (header.name().equals(s)) 
+             if (header.name().equals(toMatch))
                 return true;
         return false;
       } 
