@@ -113,31 +113,42 @@ public class Handler implements Runnable {
             }
             //creates or replaces file at supplied location
             case "PUT" -> {
-                //TODO Potentially write in protections for existing files that should not be overwritten
                 File file = new File(resource.getPath().toString());
                 if (file.createNewFile()) {
                     response.setStatusCode(201);
                 } else {
                     response.setStatusCode(200);
                 }
-                Files.write(resource.getPath(), Collections.singletonList(request.getBody()), StandardCharsets.ISO_8859_1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+                Files.write(resource.getPath(), Collections.singletonList(request.getBody()), StandardCharsets.ISO_8859_1, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
                 response.addHeader("Content-Location", request.getID());
                 response.addHeader("Content-Type", "text/html");
                 response.setBody(this.responseConcat(request).getBytes());
                 writeResponse();
             }
             case "POST" -> {
-
+                File file = new File(resource.getPath().toString());
+                if (file.createNewFile()) {
+                    response.setStatusCode(201);
+                } else {
+                    response.setStatusCode(200);
+                }
+                Files.write(resource.getPath(), Collections.singletonList(request.getBody()), StandardCharsets.ISO_8859_1, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+                response.addHeader("Content-Location", request.getID());
+                response.addHeader("Content-Type", "text/html");
+                response.setBody(this.responseConcat(request).getBytes());
+                writeResponse();
             }
             case "DELETE" -> {
-                //TODO Potentially write in protections for existing files that should not be deleted
                 if(Files.exists(resource.getPath())){
                     File file = new File(resource.getPath().toString());
                     if(file.delete()){
                         System.out.println("Successfully deleted: " + file.getName());
+                        response.setStatusCode(204);
                     } else{
                         System.out.println("Failed to delete file: " + file.getName());
+                        response.setStatusCode(404);
                     }
+                    writeResponse();
                 }
 
             }
