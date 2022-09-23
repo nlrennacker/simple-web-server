@@ -67,11 +67,6 @@ public class HttpRequest {
         } else {
             return Optional.ofNullable(identifier.substring(indexOfInterrobang + 1));
         }
-        
-    public String getID(){
-        return identifier;
-
-    }
 
     /**
      * Sets the specified Header (enum value) with its corresponding value in a Hashmap<Header, String>
