@@ -67,7 +67,8 @@ public class HttpRequest {
         } else {
             return Optional.ofNullable(identifier.substring(indexOfInterrobang + 1));
         }
-
+    }
+    
     /**
      * Sets the specified Header (enum value) with its corresponding value in a Hashmap<Header, String>
      * @param header enum
