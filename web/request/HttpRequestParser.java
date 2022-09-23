@@ -18,7 +18,7 @@ public class HttpRequestParser {
         regex = new HashMap<>();
         regex.put("carriageReturn", "\\R"); // java new line os independent
         regex.put("headerSplit", "(?s:.)+?(?<=Content-Length: \\d{0,100}\\R)"); // everything before (and including
-        // Content-Length: ... \r\n)
+                                                                                // Content-Length: ... \r\n)
     }
 
     public HttpRequestParser(Socket socket, HttpRequest request) throws IOException {
