@@ -39,7 +39,7 @@ public class Handler implements Runnable {
             HttpResponse response = new HttpResponse();
             response.addHeader("Connection", "close");
 
-            if (request.isValidRequest()) {
+            if (request.isInvalidRequest()) {
                 response.setStatusCode(400);
                 writeResponse(response);
                 return;
