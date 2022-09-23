@@ -9,14 +9,14 @@ public class HttpRequest {
     private String method = "NONE";
     private String identifier;
     private String version;
-    private HashMap<Header,String> headers = new HashMap<>();
+    private final HashMap<Header,String> headers = new HashMap<>();
     private String body = "";
     private String fullRequest = "";
+    private boolean badRequest = false;
 
     public HttpRequest(Socket socket) throws IOException{
         //this.INet = socket.getInetAddress();
         HttpRequestParser parser = new HttpRequestParser(socket, this);
-        System.out.println("Request Received: \n" + parser.getFullRequest());
     }
 
     /**
@@ -96,7 +96,11 @@ public class HttpRequest {
         return fullRequest;
     }
 
+    public void setBadRequest(){
+        this.badRequest = true;
+    }
+
     public boolean isValidRequest() {
-        return method != null && identifier != null && version != null;
+        return badRequest;
     }
 }

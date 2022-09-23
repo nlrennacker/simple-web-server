@@ -10,6 +10,7 @@ public final class ConfigResource {
     private static ConfigResource instance;
     private static HttpdConf httpdConf;
     private static MimeTypes mimeTypes;
+    private static final Integer DEFAULT_PORT = 8080;
 
     private ConfigResource() {}
 
@@ -35,6 +36,10 @@ public final class ConfigResource {
 
     public static MimeTypes getMimeTypes() {
         return mimeTypes;
+    }
+
+    public static Integer getDefaultPort(){
+        return DEFAULT_PORT;
     }
 
 }

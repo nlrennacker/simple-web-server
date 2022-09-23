@@ -2,6 +2,7 @@ package web.resource;
 
 import web.request.HttpRequest;
 
+import javax.print.attribute.DateTimeSyntax;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,8 +18,16 @@ import java.util.regex.Pattern;
 public class HttpResource {
     private static final String DEFAULT_DIRECTORY_INDEX = "index.html";
     private Path requestPath;
+    private final HttpRequest request;
 
-    public HttpResource(HttpRequest request){
+    private static int fileCount;
+
+    public HttpResource(HttpRequest request) {
+        this.request = request;
+        this.findPath();
+    }
+
+    private void findPath() {
         // Resolve request URI to an absolute path
         String requestUri = request.getID();
         boolean isScriptAliased = false;
@@ -26,8 +35,7 @@ public class HttpResource {
             for (Map.Entry<String, String> scriptAlias : ConfigResource.getHttpdConf().getScriptAliases().get().entrySet()) {
                 if (requestUri.contains(scriptAlias.getKey())) {
                     isScriptAliased = true;
-                    requestUri = requestUri.replaceFirst(Pattern.quote(scriptAlias.getKey()),
-                            Pattern.quote(scriptAlias.getValue()));
+                    requestUri = requestUri.replaceFirst(Pattern.quote(scriptAlias.getKey()), Pattern.quote(scriptAlias.getValue()));
                     break;
                 }
             }
@@ -38,8 +46,7 @@ public class HttpResource {
             requestPath = Paths.get(requestUri);
         }
         if (Files.isDirectory(requestPath)) {
-            requestPath = Paths.get(requestPath.toString(),
-                    ConfigResource.getHttpdConf().getDirectoryIndex().orElse(DEFAULT_DIRECTORY_INDEX));
+            requestPath = Paths.get(requestPath.toString(), ConfigResource.getHttpdConf().getDirectoryIndex().orElse(DEFAULT_DIRECTORY_INDEX));
         }
     }
 
@@ -47,37 +54,24 @@ public class HttpResource {
         return requestPath;
     }
 
-        /**
+    /**
      * Compares the supplied date time with the cached file date time
-     * If the supplied date time is AFTER the file date time:
-     * FALSE is returned
-     * Otherwise
-     * TRUE is returned
-     * 
-     * If the supplied date time does not match the correct formatting, false is
-     * returned
-     * 
-     * @param file
+     *
      * @param unformattedDate
-     * @return boolean value based on
+     * @return boolean TRUE if the supplied date time is before the file date time and FALSE if it is after or if it failed to match
      */
     public boolean compareDateTime(String unformattedDate) {
 
-        DateTimeFormatter formatter = DateTimeFormatter
-                .ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH).withZone(ZoneId.of("GMT"));
-        try {
-            ZonedDateTime dateToCompare = ZonedDateTime
-                    .parse(unformattedDate, formatter);
+        DateTimeFormatter  formatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH).withZone(ZoneId.of("GMT"));
 
-            ZonedDateTime fileDateTime = Instant.ofEpochMilli(requestPath.toFile().lastModified())
-                    .atZone(ZoneId.of(ZonedDateTime.now().getOffset().toString()));
+        try {
+            ZonedDateTime dateToCompare = ZonedDateTime.parse(unformattedDate, formatter);
+
+            ZonedDateTime fileDateTime = Instant.ofEpochMilli(requestPath.toFile().lastModified()).atZone(ZoneId.of(ZonedDateTime.now().getOffset().toString()));
 
             System.out.println(dateToCompare + "\n" + fileDateTime);
 
-            if (dateToCompare.isAfter(fileDateTime))
-                return true;
-            else
-                return false;
+            return dateToCompare.isAfter(fileDateTime);
 
         } catch (DateTimeParseException e) {
             System.out.println("Illegal Date Format");
@@ -86,5 +80,10 @@ public class HttpResource {
         }
     }
 
-    
+    public String getFileDateTimeToString(){
+        //this is monstrous but it works
+        return DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH).withZone(ZoneId.of("GMT")).format(Instant.ofEpochMilli(requestPath.toFile().lastModified()).atZone(ZoneId.of(ZonedDateTime.now().getOffset().toString())));
+    }
+
+
 }

@@ -4,6 +4,8 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HttpRequestParser {
 
@@ -11,7 +13,7 @@ public class HttpRequestParser {
     private HttpRequest request;
 
     //more readable regex
-    private static HashMap<String, String> regex;
+    private static final HashMap<String, String> regex;
     static {
         regex = new HashMap<>();
         regex.put("carriageReturn", "\\R"); // java new line os independent
@@ -44,16 +46,17 @@ public class HttpRequestParser {
             // requests MUST have body but can be empty
             case "POST":
             case "PUT":
-                if (fullRequest.contains("Content-Length: ")) {
-                    // removing body (it's in [1])
-                    String[] headerBodySplit = fullRequest.split(regex.get("headerSplit")); 
-                    parseHeaders(headerBodySplit[0]);
-                    if (headerBodySplit.length > 1) {
-                        request.setBody(headerBodySplit[1].trim());
+                Pattern p = Pattern.compile(regex.get("headerSplit"));
+                Matcher m = p.matcher(fullRequest);
+                if (m.find()) {
+                    String headers = m.group(0);
+                    String body = fullRequest.substring(m.group(0).length()).trim();
+                    parseHeaders(m.group(0));
+                    if (!body.equals("")) {
+                        request.setBody(body);
                     }
                 } else {
-                    // TODO
-                    // CREATE FLAG FOR IMPROPER FORMAT
+                   request.setBadRequest();
                 }
                 break;
 
@@ -66,14 +69,11 @@ public class HttpRequestParser {
                     if (headerBodySplit.length > 1) {
                         request.setBody(headerBodySplit[1].trim());
                     }
-                } else {
-
                 }
                 break;
 
             default:
-                // TODO
-                // RAISE FLAG FOR UNSUPPORTED METHOD
+                request.setBadRequest();
                 break;
         }
     }
@@ -93,8 +93,7 @@ public class HttpRequestParser {
         String[] splitHeader = fullHeader.split("\\s+");
 
         if (splitHeader.length < 3) {
-            // TODO
-            // CREATE FLAG FOR IMPROPER FORMAT
+            request.setBadRequest();
         } else {
             this.request.setMethodAndIDs(splitHeader);
         }
@@ -104,7 +103,7 @@ public class HttpRequestParser {
         String[] carriageSplit = headers.split(regex.get("carriageReturn"));
 
         for (String line : carriageSplit) {
-            String identAndData[] = line.split(": ");
+            String[] identAndData = line.split(": ");
             String removeDash = identAndData[0].trim().toUpperCase().replace("-", "");
 
             // ensures that header is valid and recognized according to standards
