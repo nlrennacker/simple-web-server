@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 public class Handler implements Runnable {
@@ -25,9 +26,13 @@ public class Handler implements Runnable {
     private static final String HT_ACCESS_FILENAME = ".htaccess";
 
     private final Socket socket;
+    private final HttpRequest request;
+    private final HttpResponse response;
 
-    public Handler(Socket socket) {
+    public Handler(Socket socket) throws IOException {
         this.socket = socket;
+        this.request = new HttpRequest(socket);
+        this.response = new HttpResponse();
     }
 
     @Override
@@ -35,13 +40,11 @@ public class Handler implements Runnable {
         try {
             System.out.println("Connection Established: " + socket.getLocalSocketAddress());
 
-            HttpRequest request = new HttpRequest(socket);
-            HttpResponse response = new HttpResponse();
             response.addHeader("Connection", "close");
 
             if (request.isInvalidRequest()) {
                 response.setStatusCode(400);
-                writeResponse(response);
+                writeResponse();
                 return;
             }
 
@@ -56,30 +59,31 @@ public class Handler implements Runnable {
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.MISSING_AUTH)) {
                 response.setStatusCode(401);
                 response.addHeader("WWW-Authenticate", authorizationChecker.getWWWAuthenticateHeader());
-                writeResponse(response);
+                writeResponse();
                 return;
             }
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.INVALID)) {
                 response.setStatusCode(403);
-                writeResponse(response);
+                writeResponse();
                 return;
             }
 
-            if (Files.notExists(resource.getPath()) && !request.getMethod().equals("POST") && !request.getMethod().equals("PUT")) {
+            if (Files.notExists(resource.getPath()) && !request.getMethod().equals("PUT")) {
                 response.setStatusCode(404);
-                writeResponse(response);
+                writeResponse();
                 return;
             }
 
-            focusResponse(request, response, resource);
-
+            if (resource.getIsScriptAliased()) {
+                handleCgi(resource);
+            } else {
+                focusResponse(request, response, resource);
+            }
         } catch (Exception e) {
-            System.out.println("Error while handling request");
+            System.out.println("Error while handling request:");
             e.printStackTrace();
-            HttpResponse error = new HttpResponse();
-            error.addHeader("Connection", "close");
-            error.setStatusCode(500);
-            this.writeResponse(error);
+            response.setStatusCode(500);
+            this.writeResponse();
         }
     }
 
@@ -93,16 +97,16 @@ public class Handler implements Runnable {
                 if (request.hasHeader(Header.IFMODIFIEDSINCE) && resource.compareDateTime(request.getHeaderValue(Header.IFMODIFIEDSINCE))) {
                     response.setStatusCode(304);
                     response.addHeader("Last-Modified:", resource.getFileDateTimeToString());
-                    writeResponse(response);
+                    writeResponse();
                     return;
                 }
                 String mimeType = ConfigResource.getMimeTypes().getMimeTypeForExtension(getFileExtension(resource.getPath())).orElse(DEFAULT_MIME_TYPE);
                 response.addHeader("Content-Type", mimeType);
                 response.setBody(Files.readAllBytes(resource.getPath()));
-                if(request.getMethod().toUpperCase().equals("HEAD")){
+                if(request.getMethod().equalsIgnoreCase("HEAD")){
                     response.setSendBody();
                 }
-                writeResponse(response);
+                writeResponse();
             }
             //creates or replaces file at supplied location
             case "PUT" -> {
@@ -117,7 +121,7 @@ public class Handler implements Runnable {
                 response.addHeader("Content-Location", request.getID());
                 response.addHeader("Content-Type", "text/html");
                 response.setBody(this.responseConcat(request).getBytes());
-                writeResponse(response);
+                writeResponse();
             }
             case "POST" -> {
 
@@ -141,19 +145,65 @@ public class Handler implements Runnable {
 
     }
 
+    private void handleCgi(HttpResource resource) {
+        ProcessBuilder processBuilder = new ProcessBuilder(resource.getPath().toString());
+
+        Map<String, String> env = processBuilder.environment();
+        env.put("SERVER_PROTOCOL", "HTTP/1.1");
+        request.getQueryString().ifPresent((queryString) -> env.put("QUERY_STRING", queryString));
+        Map<Header, String> requestHeaders = request.getHeaders();
+        for (Map.Entry<Header, String> requestHeader : requestHeaders.entrySet()) {
+            env.put("HTTP_".concat(requestHeader.getKey().toString()), requestHeader.getValue());
+        }
+
+        byte[] body = request.getBody().getBytes();
+        try {
+            Process process = processBuilder.start();
+
+            OutputStream outputStream = process.getOutputStream();
+            outputStream.write(body, 0, body.length);
+            outputStream.flush();
+            outputStream.close();
+            response.setStatusCode(200);
+            writeCgiResponse(process);
+            return;
+        } catch (IOException e) {
+            e.printStackTrace();
+            response.setStatusCode(500);
+            writeResponse();
+            return;
+        }
+    }
+
     private String responseConcat(HttpRequest request) {
         String first = "Your content has been saved! \n Click <A href=\"";
         String second = "\">here</A> to view it.";
         return first + request.getID() + second;
     }
 
-    private void writeResponse(HttpResponse response){
+    private void writeResponse(){
         try (OutputStream outputStream = this.socket.getOutputStream()) {
             response.writeResponse(outputStream);
             outputStream.flush();
         } catch (IOException e) {
             // Handle the case where client closed the connection while server was writing
             // to it
+            try {
+                this.socket.close();
+            } catch (IOException ex) {
+                System.out.println("Error occurred when closing socket");
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private void writeCgiResponse(Process process) throws IOException {
+        try (OutputStream outputStream = this.socket.getOutputStream()) {
+            response.writeMinimalCgiResponse(outputStream);
+            process.getInputStream().transferTo(outputStream);
+            outputStream.flush();
+        } catch (IOException e) {
+            // Handle the case where client closed the connection while server was writing to it
             try {
                 this.socket.close();
             } catch (IOException ex) {

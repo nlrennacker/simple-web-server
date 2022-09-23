@@ -96,6 +96,17 @@ public class HttpResponse {
         }
     }
 
+
+    public void writeMinimalCgiResponse(OutputStream outputStream) throws IOException {
+        // Set minimal headers to identify server
+        this.setHeaders(Map.of("Server", "Chan Rennacker", "Date", (new Date()).toString()));
+
+        outputStream.write(String.format("%s\r\n", getStatusLine()).getBytes(StandardCharsets.ISO_8859_1));
+        for (Map.Entry<String, String> header : this.headers.entrySet()) {
+            outputStream.write(String.format("%s: %s\r\n", header.getKey(), header.getValue()).getBytes(StandardCharsets.ISO_8859_1));
+        }
+    }
+
     private String getStatusLine() {
         String reasonPhrase = HttpResponse.REASON_PHRASES.get(this.statusCode);
 

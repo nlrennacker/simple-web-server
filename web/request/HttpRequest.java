@@ -3,6 +3,8 @@ package web.request;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 public class HttpRequest {
 
@@ -44,8 +46,31 @@ public class HttpRequest {
      * Returns the ID of the Http Request
      * @return String Identifier
      */
+     
+    public String getID() {
+        int indexOfInterrobang = identifier.indexOf('?');
+        if (indexOfInterrobang == -1) {
+            return identifier;
+        } else {
+            return identifier.substring(0, indexOfInterrobang);
+        }
+    }
+
+    /**
+     * Returns the ID of the Http Request
+     * @return String Identifier
+     */
+    public Optional<String> getQueryString() {
+        int indexOfInterrobang = identifier.indexOf('?');
+        if (indexOfInterrobang == -1) {
+            return Optional.empty();
+        } else {
+            return Optional.ofNullable(identifier.substring(indexOfInterrobang + 1));
+        }
+        
     public String getID(){
         return identifier;
+
     }
 
     /**
@@ -69,6 +94,12 @@ public class HttpRequest {
     public String getHeaderValue(Header header){
         return headers.get(header);
     }
+
+
+    public Map<Header,String> getHeaders(){
+        return headers;
+    }
+
     
     /**
      * Sets the http request body

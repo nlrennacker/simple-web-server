@@ -19,8 +19,8 @@ public class HttpResource {
     private static final String DEFAULT_DIRECTORY_INDEX = "index.html";
     private Path requestPath;
     private final HttpRequest request;
+    private boolean isScriptAliased;
 
-    private static int fileCount;
 
     public HttpResource(HttpRequest request) {
         this.request = request;
@@ -30,20 +30,20 @@ public class HttpResource {
     private void findPath() {
         // Resolve request URI to an absolute path
         String requestUri = request.getID();
-        boolean isScriptAliased = false;
+        this.isScriptAliased = false;
         if (ConfigResource.getHttpdConf().getScriptAliases().isPresent()) {
             for (Map.Entry<String, String> scriptAlias : ConfigResource.getHttpdConf().getScriptAliases().get().entrySet()) {
                 if (requestUri.contains(scriptAlias.getKey())) {
-                    isScriptAliased = true;
-                    requestUri = requestUri.replaceFirst(Pattern.quote(scriptAlias.getKey()), Pattern.quote(scriptAlias.getValue()));
+                    this.isScriptAliased = true;
+                    requestUri = requestUri.replace(scriptAlias.getKey(), scriptAlias.getValue());
                     break;
                 }
             }
         }
-        if (!isScriptAliased) {
-            requestPath = Paths.get(ConfigResource.getHttpdConf().getDocumentRoot().get(), requestUri);
-        } else {
+        if (this.isScriptAliased) {
             requestPath = Paths.get(requestUri);
+        } else {
+            requestPath = Paths.get(ConfigResource.getHttpdConf().getDocumentRoot().orElseThrow(), requestUri);
         }
         if (Files.isDirectory(requestPath)) {
             requestPath = Paths.get(requestPath.toString(), ConfigResource.getHttpdConf().getDirectoryIndex().orElse(DEFAULT_DIRECTORY_INDEX));
@@ -80,10 +80,12 @@ public class HttpResource {
         }
     }
 
-    public String getFileDateTimeToString(){
+    public String getFileDateTimeToString() {
         //this is monstrous but it works
         return DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH).withZone(ZoneId.of("GMT")).format(Instant.ofEpochMilli(requestPath.toFile().lastModified()).atZone(ZoneId.of(ZonedDateTime.now().getOffset().toString())));
     }
 
-
+    public boolean getIsScriptAliased() {
+        return this.isScriptAliased;
+    }
 }

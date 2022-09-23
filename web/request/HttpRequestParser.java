@@ -37,7 +37,7 @@ public class HttpRequestParser {
         splitHeader(fullRequest.split(regex.get("carriageReturn"))[0]);
         Pattern p = Pattern.compile(regex.get("headerSplit"));
         Matcher m = p.matcher(fullRequest);
-        
+
         switch (request.getMethod()) {
             // request body is disregarded if there is one
             case "GET":
@@ -104,7 +104,7 @@ public class HttpRequestParser {
 
         for (String line : carriageSplit) {
             String[] identAndData = line.split(": ");
-            String removeDash = identAndData[0].trim().toUpperCase().replace("-", "");
+            String removeDash = identAndData[0].trim().toUpperCase().replace("-", "_");
 
             // ensures that header is valid and recognized according to standards
             if (Header.contains(removeDash)) {
@@ -121,7 +121,7 @@ public class HttpRequestParser {
     // REMOVE OR CHANGE THIS FUNCTIONALITY
     /**
      * Returns the full http Request for debug purposes
-     * 
+     *
      * @return
      */
     public String getFullRequest() {
