@@ -187,7 +187,7 @@ public class Handler implements Runnable {
     private void logRequest() throws IOException {
         String host = this.socket.getInetAddress().getHostAddress();
         String ident = "-";
-        String authuser = this.authorizationChecker.getCheckedUser().orElse("-");
+        String authuser = this.authorizationChecker != null ? this.authorizationChecker.getCheckedUser().orElse("-") : "-";
         String date = new SimpleDateFormat("d/MMM/yyyy:hh:mm:ss Z").format(new Date());
         String request = this.request.getRequestLine();
         String status = String.valueOf(this.response.getStatusCode());
