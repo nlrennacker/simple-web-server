@@ -33,7 +33,7 @@ public class HttpResponse {
     private Map<String, String> headers;
     private byte[] body;
 
-    private boolean sendBody =  false;
+    private boolean sendBody =  true;
 
     public HttpResponse() {
         this.httpVersion = "HTTP/1.1";
@@ -66,7 +66,7 @@ public class HttpResponse {
     }
 
     public void setSendBody(){
-        sendBody = true;
+        sendBody = false;
     }
 
     public void writeResponse(OutputStream outputStream) throws IOException {

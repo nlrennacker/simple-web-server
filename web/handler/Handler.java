@@ -99,7 +99,7 @@ public class Handler implements Runnable {
                 String mimeType = ConfigResource.getMimeTypes().getMimeTypeForExtension(getFileExtension(resource.getPath())).orElse(DEFAULT_MIME_TYPE);
                 response.addHeader("Content-Type", mimeType);
                 response.setBody(Files.readAllBytes(resource.getPath()));
-                if(request.getMethod().toUpperCase().equals("GET")){
+                if(request.getMethod().toUpperCase().equals("HEAD")){
                     response.setSendBody();
                 }
                 writeResponse(response);
