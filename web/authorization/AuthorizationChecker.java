@@ -1,6 +1,6 @@
-package web.handler;
+package web.authorization;
 
-import web.request.HTTPRequest;
+import web.request.HttpRequest;
 import web.request.Header;
 import web.server.configuration.HtAccess;
 import web.server.configuration.HtPassword;
@@ -27,7 +27,7 @@ public class AuthorizationChecker {
         } catch (IOException ignored) {}
     }
 
-    public AuthorizationResult checkAuthorization(HTTPRequest request) throws IOException {
+    public AuthorizationResult checkAuthorization(HttpRequest request) throws IOException {
         if (htAccess == null) {
             return AuthorizationResult.VALID;
         } else {
