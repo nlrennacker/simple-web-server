@@ -17,10 +17,7 @@ public class HTTPRequest {
     private String body = "";
     private String fullRequest = "";
 
-    public HTTPRequest(Socket socket) throws IOException{
-        //this.INet = socket.getInetAddress();
-        HttpRequestParser parser = new HttpRequestParser(socket, this);
-        System.out.println("Request Received: \n" + parser.getFullRequest());
+    public HTTPRequest(Socket socket) throws IOException {
     }
 
     /**
@@ -120,5 +117,14 @@ public class HTTPRequest {
 
     public boolean isValidRequest() {
         return method != null && identifier != null && version != null;
+    }
+
+    public String getRequestLine() {
+        return String.format(
+                "%s %s %s",
+                this.method,
+                this.getID(),
+                "HTTP/1.1"
+        );
     }
 }

@@ -92,11 +92,7 @@ public class HttpRequestParser {
     private void splitHeader(String fullHeader) {
         String[] splitHeader = fullHeader.split("\\s+");
 
-        if (splitHeader.length < 3) {
-            System.out.println("header not long enough");
-            // TODO
-            // CREATE FLAG FOR IMPROPER FORMAT
-        } else {
+        if (splitHeader.length >= 3) {
             this.request.setMethodAndIDs(splitHeader);
         }
     }

@@ -20,16 +20,21 @@ public class HtPassword {
         }
     }
 
-    public boolean isAuthorized(String authInfo) {
-        if (authInfo == null) {
-            return false;
-        }
+    public static String[] tokenizeAuthInfo(String authInfo) {
         authInfo = authInfo.replaceFirst("^Basic ", "");
         String credentials = new String(
                 Base64.getDecoder().decode(authInfo),
                 StandardCharsets.UTF_8
         );
         String[] tokens = credentials.split(":");
+        return tokens;
+    }
+
+    public boolean isAuthorized(String authInfo) {
+        if (authInfo == null) {
+            return false;
+        }
+        String[] tokens = HtPassword.tokenizeAuthInfo(authInfo);
         if (tokens.length != 2) {
             return false;
         }
@@ -37,6 +42,9 @@ public class HtPassword {
     }
 
     private boolean verifyPassword(String username, String password) {
+        if (!passwords.containsKey(username)) {
+            return false;
+        }
         return passwords.get(username).equals(encryptClearPassword(password));
     }
 

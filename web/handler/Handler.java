@@ -6,6 +6,7 @@ import web.response.HTTPResponse;
 import web.server.configuration.HttpdConf;
 import web.server.configuration.MimeTypes;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -13,6 +14,9 @@ import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 
@@ -25,33 +29,35 @@ public class Handler implements Runnable {
     private final Socket socket;
     private final HttpdConf httpdConf;
     private final MimeTypes mimeTypes;
+    private int bytesSent;
+    private HTTPRequest request;
+    private HTTPResponse response;
+    private AuthorizationChecker authorizationChecker;
 
-    public Handler(Socket socket, HttpdConf httpdConf, MimeTypes mimeTypes) {
+    public Handler(Socket socket, HttpdConf httpdConf, MimeTypes mimeTypes) throws IOException {
         this.socket = socket;
         this.httpdConf = httpdConf;
         this.mimeTypes = mimeTypes;
+        this.request = new HTTPRequest(socket);
+        this.response = new HTTPResponse();
     }
 
     @Override
     public void run() {
         try {
-            System.out.println("Connection Established: " + socket.getLocalSocketAddress());
+            this.response.addHeader("Connection", "close");
 
-            HTTPRequest request = new HTTPRequest(socket);
-            HTTPResponse response = new HTTPResponse();
-            response.addHeader("Connection", "close");
-
-            if (!request.isValidRequest()) {
-                response.setStatusCode(400);
-                writeResponse(response);
+            if (!this.request.isValidRequest()) {
+                this.response.setStatusCode(400);
+                writeResponse();
                 return;
             }
 
             // Resolve request URI to an absolute path
-            String requestUri = request.getID();
+            String requestUri = this.request.getID();
             boolean isScriptAliased = false;
-            if (httpdConf.getScriptAliases().isPresent()) {
-                for (Map.Entry<String, String> scriptAlias : httpdConf.getScriptAliases().get().entrySet()) {
+            if (this.httpdConf.getScriptAliases().isPresent()) {
+                for (Map.Entry<String, String> scriptAlias : this.httpdConf.getScriptAliases().get().entrySet()) {
                     if (requestUri.contains(scriptAlias.getKey())) {
                         isScriptAliased = true;
                         requestUri = requestUri.replace(scriptAlias.getKey(), scriptAlias.getValue());
@@ -70,23 +76,23 @@ public class Handler implements Runnable {
             }
 
             Path htAccessPath = Paths.get(requestPath.toAbsolutePath().getParent().toString(), HT_ACCESS_FILENAME);
-            AuthorizationChecker authorizationChecker = new AuthorizationChecker(htAccessPath);
-            AuthorizationChecker.AuthorizationResult authorizationResult = authorizationChecker.checkAuthorization(request);
+            this.authorizationChecker = new AuthorizationChecker(htAccessPath);
+            AuthorizationChecker.AuthorizationResult authorizationResult = this.authorizationChecker.checkAuthorization(request);
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.MISSING_AUTH)) {
-                response.setStatusCode(401);
-                response.addHeader("WWW-Authenticate", authorizationChecker.getWWWAuthenticateHeader());
-                writeResponse(response);
+                this.response.setStatusCode(401);
+                this.response.addHeader("WWW-Authenticate", this.authorizationChecker.getWWWAuthenticateHeader());
+                writeResponse();
                 return;
             }
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.INVALID)) {
-                response.setStatusCode(403);
-                writeResponse(response);
+                this.response.setStatusCode(403);
+                writeResponse();
                 return;
             }
 
             if (Files.notExists(requestPath)) {
-                response.setStatusCode(404);
-                writeResponse(response);
+                this.response.setStatusCode(404);
+                writeResponse();
                 return;
             }
 
@@ -95,13 +101,13 @@ public class Handler implements Runnable {
 
                 Map<String, String> env = processBuilder.environment();
                 env.put("SERVER_PROTOCOL", "HTTP/1.1");
-                request.getQueryString().ifPresent((queryString) -> env.put("QUERY_STRING", queryString));
-                Map<Header, String> requestHeaders = request.getHeaders();
+                this.request.getQueryString().ifPresent((queryString) -> env.put("QUERY_STRING", queryString));
+                Map<Header, String> requestHeaders = this.request.getHeaders();
                 for (Map.Entry<Header, String> requestHeader : requestHeaders.entrySet()) {
                     env.put("HTTP_".concat(requestHeader.getKey().toString()), requestHeader.getValue());
                 }
 
-                byte[] body = request.getBody().getBytes();
+                byte[] body = this.request.getBody().getBytes();
                 try {
                     Process process = processBuilder.start();
 
@@ -109,13 +115,13 @@ public class Handler implements Runnable {
                     outputStream.write(body, 0, body.length);
                     outputStream.flush();
                     outputStream.close();
-                    response.setStatusCode(200);
-                    writeCgiResponse(response, process);
+                    this.response.setStatusCode(200);
+                    writeCgiResponse(process);
                     return;
                 } catch (IOException e) {
                     e.printStackTrace();
-                    response.setStatusCode(500);
-                    writeResponse(response);
+                    this.response.setStatusCode(500);
+                    writeResponse();
                     return;
                 }
             }
@@ -123,14 +129,14 @@ public class Handler implements Runnable {
             switch (request.getMethod().toUpperCase()) {
                 case "GET" -> {
                     String mimeType = this.mimeTypes.getMimeTypeForExtension(getFileExtension(requestPath)).orElse(DEFAULT_MIME_TYPE);
-                    response.addHeader("Content-Type", mimeType);
-                    response.setBody(Files.readAllBytes(requestPath));
-                    writeResponse(response);
+                    this.response.addHeader("Content-Type", mimeType);
+                    this.response.setBody(Files.readAllBytes(requestPath));
+                    writeResponse();
                     return;
                 }
                 default -> {
-                    response.setStatusCode(200);
-                    writeResponse(response);
+                    this.response.setStatusCode(200);
+                    writeResponse();
                     return;
                 }
             }
@@ -139,29 +145,31 @@ public class Handler implements Runnable {
             e.printStackTrace();
 
             try {
-                HTTPResponse response = new HTTPResponse();
-                response.addHeader("Connection", "close");
-                response.setStatusCode(500);
-                writeResponse(response);
+                this.response.setStatusCode(500);
+                writeResponse();
             } catch (IOException ignored) {}
         }
     }
 
-    private void writeResponse(HTTPResponse response) throws IOException {
-        try (OutputStream outputStream = this.socket.getOutputStream()) {
-            response.writeResponse(outputStream);
+    private void writeResponse() throws IOException {
+        try (CountingOutputStream outputStream = new CountingOutputStream(this.socket.getOutputStream())) {
+            this.response.writeResponse(outputStream);
             outputStream.flush();
+            this.bytesSent = outputStream.getCount();
+            logRequest();
         } catch (SocketException e) {
             // Handle the case where client closed the connection while server was writing to it
             this.socket.close();
         }
     }
 
-    private void writeCgiResponse(HTTPResponse response, Process process) throws IOException {
-        try (OutputStream outputStream = this.socket.getOutputStream()) {
-            response.writeMinimalCgiResponse(outputStream);
+    private void writeCgiResponse(Process process) throws IOException {
+        try (CountingOutputStream outputStream = new CountingOutputStream(this.socket.getOutputStream())) {
+            this.response.writeMinimalCgiResponse(outputStream);
             process.getInputStream().transferTo(outputStream);
             outputStream.flush();
+            this.bytesSent = outputStream.getCount();
+            logRequest();
         } catch (SocketException e) {
             // Handle the case where client closed the connection while server was writing to it
             this.socket.close();
@@ -174,5 +182,47 @@ public class Handler implements Runnable {
                 .filter(f -> f.contains("."))
                 .map(f -> f.substring(filename.lastIndexOf(".") + 1))
                 .orElse("");
+    }
+
+    private void logRequest() throws IOException {
+        String host = this.socket.getInetAddress().getHostAddress();
+        String ident = "-";
+        String authuser = this.authorizationChecker.getCheckedUser().orElse("-");
+        String date = new SimpleDateFormat("d/MMM/yyyy:hh:mm:ss Z").format(new Date());
+        String request = this.request.getRequestLine();
+        String status = String.valueOf(this.response.getStatusCode());
+        String bytes = String.valueOf(this.bytesSent);
+        String logString = String.format(
+            "%s %s %s [%s] \"%s\" %s %s\n",
+            host,
+            ident,
+            authuser,
+            date,
+            request,
+            status,
+            bytes
+        );
+
+        // Log to stdout
+        System.out.print(logString);
+
+        // Log to file
+        File file = new File(this.httpdConf.getLogFile().orElse("log.txt"));
+        if (file.isDirectory()) {
+            System.out.printf("Error: Cannot log to file, configured log file %s is a directory!\n", file.getAbsolutePath());
+            return;
+        }
+        // Create directories if needed
+        File parentDirectory = new File(file.getParent());
+        if (!parentDirectory.exists()) {
+            parentDirectory.mkdirs();
+        }
+        // Append log string, creating logfile if needed
+        Files.writeString(
+            Paths.get(file.toURI()),
+            logString,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.APPEND
+        );
     }
 }
