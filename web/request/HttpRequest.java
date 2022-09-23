@@ -46,6 +46,7 @@ public class HttpRequest {
      * Returns the ID of the Http Request
      * @return String Identifier
      */
+     
     public String getID() {
         int indexOfInterrobang = identifier.indexOf('?');
         if (indexOfInterrobang == -1) {
@@ -66,6 +67,10 @@ public class HttpRequest {
         } else {
             return Optional.ofNullable(identifier.substring(indexOfInterrobang + 1));
         }
+        
+    public String getID(){
+        return identifier;
+
     }
 
     /**
@@ -90,9 +95,11 @@ public class HttpRequest {
         return headers.get(header);
     }
 
+
     public Map<Header,String> getHeaders(){
         return headers;
     }
+
     
     /**
      * Sets the http request body

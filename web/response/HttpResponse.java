@@ -96,6 +96,7 @@ public class HttpResponse {
         }
     }
 
+
     public void writeMinimalCgiResponse(OutputStream outputStream) throws IOException {
         // Set minimal headers to identify server
         this.setHeaders(Map.of("Server", "Chan Rennacker", "Date", (new Date()).toString()));
