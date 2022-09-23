@@ -16,12 +16,18 @@ public class HttpRequestParser {
     private static final HashMap<String, String> regex;
     static {
         regex = new HashMap<>();
-        regex.put("carriageReturn", "\\R"); // java new line os independent
+        regex.put("carriageReturn", "\\R"); // java new line OS independent
         regex.put("headerSplit", "(?s:.)+?(?<=Content-Length: \\d{0,100}\\R)"); // everything before (and including
                                                                                 // Content-Length: ... \r\n)
     }
 
-    public HttpRequestParser(Socket socket, HttpRequest request) throws IOException {
+    /**
+     * Constructor parses the httpRequest filling respective HttpRequest fields
+     * @param socket
+     * @param request
+     * @throws IOException
+     */
+    public HttpRequestParser(Socket socket, HttpRequest request){
         try {
             fullRequest = readFullMessage(socket);
             this.request = request;
@@ -34,7 +40,7 @@ public class HttpRequestParser {
 
     private void parseInput() throws IOException {
         // [0] for getting just the first line of the full request
-        splitHeader(fullRequest.split(regex.get("carriageReturn"))[0]);
+        splitFirstLine(fullRequest.split(regex.get("carriageReturn"))[0]);
         Pattern p = Pattern.compile(regex.get("headerSplit"));
         Matcher m = p.matcher(fullRequest);
 
@@ -89,7 +95,7 @@ public class HttpRequestParser {
         return result.toString();
     }
 
-    private void splitHeader(String fullHeader) {
+    private void splitFirstLine(String fullHeader) {
         String[] splitHeader = fullHeader.split("\\s+");
 
         if (splitHeader.length < 3) {
@@ -115,16 +121,5 @@ public class HttpRequestParser {
             }
 
         }
-    }
-
-    // TODO
-    // REMOVE OR CHANGE THIS FUNCTIONALITY
-    /**
-     * Returns the full http Request for debug purposes
-     *
-     * @return
-     */
-    public String getFullRequest() {
-        return fullRequest;
     }
 }

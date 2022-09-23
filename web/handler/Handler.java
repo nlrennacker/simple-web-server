@@ -40,6 +40,13 @@ public class Handler implements Runnable {
         this.response = new HttpResponse();
     }
 
+    /**
+     * Accepts http requests and generates http responses...
+     * <p>
+     * Accepted http methods are HEAD, GET, PUT, POST, DELETE
+     * <p/>
+     * Overridden run function (from runnable interface) for threading support
+     */
     @Override
     public void run() {
         try {

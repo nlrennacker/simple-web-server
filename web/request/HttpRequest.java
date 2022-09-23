@@ -13,9 +13,13 @@ public class HttpRequest {
     private String version;
     private final HashMap<Header,String> headers = new HashMap<>();
     private String body = "";
-    private String fullRequest = "";
     private boolean badRequest = false;
 
+    /**
+     * Creates an populates http request fields for object including Method, Identifier, Version, Headers(hashMap), and an optional body
+     * @param socket any Socket with a httpRequest in the inputStream
+     * @throws IOException if socket is lost somewhere along the way
+     */
     public HttpRequest(Socket socket) throws IOException {
         new HttpRequestParser(socket, this);
     }
@@ -77,6 +81,11 @@ public class HttpRequest {
         headers.put(header, value);
     }
 
+    /**
+     * If the request has a specific header TRUE is returned, otherwise FALSE is returned
+     * @param header to search for
+     * @return TRUE if header is found, otherwise FALSE
+     */
     public boolean hasHeader(Header header){
         return headers.containsKey(header);
     }
@@ -90,7 +99,10 @@ public class HttpRequest {
         return headers.get(header);
     }
 
-
+    /**
+     * 
+     * @return the full map of request headers
+     */
     public Map<Header,String> getHeaders(){
         return headers;
     }
@@ -112,30 +124,31 @@ public class HttpRequest {
         return body;
     }
     
-    //TODO
-    //REMOVE THIS FUNCTION EVENTUALLY
     /**
-     * Returns the full http request parsed from HTTP Request Parser
-     * @return full http request string
+     * if the request fails to parse -> bad request should be flagged
      */
-    public String getFullRequest() {
-        return fullRequest;
-    }
-
     public void setBadRequest(){
         this.badRequest = true;
     }
 
+    /**
+     * Returns TRUE if the badRequest boolean is ever flagged
+     * @return TRUE if badRequest is ever flagged as true.
+     */
     public boolean isInvalidRequest() {
         return badRequest;
     }
 
+    /**
+     * Formats the request line exactly how it was recieved but surrounded by quotes
+     * @return formatted request line surrounded by quotes -> "Method URI httpVersion"
+     */
     public String getRequestLine() {
         return String.format(
                 "%s %s %s",
                 this.method,
                 this.getID(),
-                "HTTP/1.1"
+                this.version
         );
     }
 }
