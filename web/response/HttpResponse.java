@@ -15,7 +15,7 @@ import java.util.Map;
  * - Date
  * - Content-Length
  */
-public class HTTPResponse {
+public class HttpResponse {
     private static final Map<Integer, String> REASON_PHRASES = Map.of(
             200, "OK",
             201, "Created",
@@ -33,7 +33,9 @@ public class HTTPResponse {
     private Map<String, String> headers;
     private byte[] body;
 
-    public HTTPResponse() {
+    private boolean sendBody =  true;
+
+    public HttpResponse() {
         this.httpVersion = "HTTP/1.1";
         this.statusCode = 200;
         this.headers = new HashMap<>();
@@ -67,6 +69,10 @@ public class HTTPResponse {
         this.body = data;
     }
 
+    public void setSendBody(){
+        sendBody = false;
+    }
+
     public void writeResponse(OutputStream outputStream) throws IOException {
         // Set mandatory headers specified in project spec
         this.headers.put("Server", "Chan Rennacker");
@@ -85,10 +91,11 @@ public class HTTPResponse {
         outputStream.write("\r\n".getBytes(StandardCharsets.ISO_8859_1)); // There must be CRLF after the status line and headers.
 
         // Write body
-        if (this.body != null) {
+        if (this.body != null && sendBody) {
             outputStream.write(this.body);
         }
     }
+
 
     public void writeMinimalCgiResponse(OutputStream outputStream) throws IOException {
         // Set minimal headers to identify server
@@ -101,7 +108,7 @@ public class HTTPResponse {
     }
 
     private String getStatusLine() {
-        String reasonPhrase = HTTPResponse.REASON_PHRASES.get(this.statusCode);
+        String reasonPhrase = HttpResponse.REASON_PHRASES.get(this.statusCode);
 
         return String.format(
                 "%s %d %s",

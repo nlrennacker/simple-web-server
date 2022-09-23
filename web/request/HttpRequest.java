@@ -1,23 +1,22 @@
 package web.request;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class HTTPRequest {
+public class HttpRequest {
 
-    private InetAddress INet;
     private String method = "NONE";
     private String identifier;
     private String version;
-    private HashMap<Header,String> headers = new HashMap<>();
+    private final HashMap<Header,String> headers = new HashMap<>();
     private String body = "";
     private String fullRequest = "";
+    private boolean badRequest = false;
 
-    public HTTPRequest(Socket socket) throws IOException {
+    public HttpRequest(Socket socket) throws IOException {
         new HttpRequestParser(socket, this);
     }
 
@@ -46,6 +45,7 @@ public class HTTPRequest {
      * Returns the ID of the Http Request
      * @return String Identifier
      */
+
     public String getID() {
         int indexOfInterrobang = identifier.indexOf('?');
         if (indexOfInterrobang == -1) {
@@ -77,6 +77,10 @@ public class HTTPRequest {
         headers.put(header, value);
     }
 
+    public boolean hasHeader(Header header){
+        return headers.containsKey(header);
+    }
+
     /**
      * Returns the header value matching with the specified Header key (enum)
      * @param header enum
@@ -86,10 +90,12 @@ public class HTTPRequest {
         return headers.get(header);
     }
 
+
     public Map<Header,String> getHeaders(){
         return headers;
     }
-    
+
+
     /**
      * Sets the http request body
      * @param body string
@@ -116,8 +122,12 @@ public class HTTPRequest {
         return fullRequest;
     }
 
-    public boolean isValidRequest() {
-        return method != null && identifier != null && version != null;
+    public void setBadRequest(){
+        this.badRequest = true;
+    }
+
+    public boolean isInvalidRequest() {
+        return badRequest;
     }
 
     public String getRequestLine() {
