@@ -12,8 +12,7 @@ public class HttpRequest {
     private String identifier;
     private String version;
     private final HashMap<Header,String> headers = new HashMap<>();
-    private String body = "";
-    private String fullRequest = "";
+    private byte[] body;
     private boolean badRequest = false;
 
     public HttpRequest(Socket socket) throws IOException {
@@ -102,7 +101,7 @@ public class HttpRequest {
      * Sets the http request body
      * @param body string
      */
-    public void setBody(String body){
+    public void setBody(byte[] body){
         this.body = body;
     }
     
@@ -110,18 +109,8 @@ public class HttpRequest {
      * Returns the http request body if there is one, otherwise will return blank value
      * @return
      */
-    public String getBody(){
+    public byte[] getBody(){
         return body;
-    }
-    
-    //TODO
-    //REMOVE THIS FUNCTION EVENTUALLY
-    /**
-     * Returns the full http request parsed from HTTP Request Parser
-     * @return full http request string
-     */
-    public String getFullRequest() {
-        return fullRequest;
     }
 
     public void setBadRequest(){

@@ -3,58 +3,87 @@ package web.request;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class HttpRequestParser {
 
-    private String fullRequest;
     private HttpRequest request;
+    private String requestLine;
+    private String headerString;
+    private byte[] rawBody;
 
-    // more readable regex
-    private static final HashMap<String, String> regex;
-    static {
-        regex = new HashMap<>();
-        regex.put("carriageReturn", "\\R"); // java new line os independent
-        regex.put("headerSplit", "(?s:.)+?(?<=Content-Length: \\d{0,100}\\R)"); // everything before (and including
-                                                                                // Content-Length: ... \r\n)
-    }
 
-    public HttpRequestParser(Socket socket, HttpRequest request) throws IOException {
+    public HttpRequestParser(Socket socket, HttpRequest request) {
         try {
-            fullRequest = readFullMessage(socket);
             this.request = request;
-            parseInput();
+            readAndParseFullMessage(socket);
         } catch (Exception e) {
             System.err.println("Error occurred when creating request");
             e.printStackTrace();
         }
     }
 
-    private void parseInput() throws IOException {
-        // [0] for getting just the first line of the full request
-        splitHeader(fullRequest.split(regex.get("carriageReturn"))[0]);
-        Pattern p = Pattern.compile(regex.get("headerSplit"));
-        Matcher m = p.matcher(fullRequest);
+    // ensures that entire http request is read in (because requests are parsed in
+    // series of packets and those may not be loaded into memory instantly)
+    private void readAndParseFullMessage(Socket socket) throws IOException {
+        BufferedInputStream stream = new BufferedInputStream(socket.getInputStream());
 
-        switch (request.getMethod()) {
+        // Read and parse headers from input stream
+        StringBuilder requestMessageBuilder = new StringBuilder();
+        byte[] previousBytes = new byte[3];
+        do {
+            int b = stream.read();
+            if (b == -1) {
+                break;
+            }
+            requestMessageBuilder.append((char) b);
+            if (previousBytes[0] == '\r' && previousBytes[1] == '\n' && previousBytes[2] == '\r' && b == '\n') {
+                break;
+            }
+            previousBytes[0] = previousBytes[1];
+            previousBytes[1] = previousBytes[2];
+            previousBytes[2] = (byte) b;
+        } while (stream.available() > 0);
+
+        // Set request fields (method, id, headers)
+        String requestMessage = requestMessageBuilder.toString();
+        int requestMessageFirstCrlf = requestMessage.indexOf("\r\n");
+        if (requestMessageFirstCrlf == -1) {
+            this.requestLine = requestMessage;
+        } else {
+            this.requestLine = requestMessage.substring(0, requestMessageFirstCrlf + 2);
+            this.headerString = requestMessage.substring(requestMessageFirstCrlf + 2);
+            parseHeaders(this.headerString);
+        }
+        setRequestMethodAndIDs(this.requestLine);
+
+        // Read body from input stream
+        if (this.request.hasHeader(Header.CONTENT_LENGTH)) {
+            this.rawBody = new byte[Integer.parseInt(this.request.getHeaderValue(Header.CONTENT_LENGTH))];
+            int i = 0;
+            do {
+                int b = stream.read();
+                if (b == -1) {
+                    break;
+                }
+                if (i >= this.rawBody.length) {
+                    break;
+                }
+                this.rawBody[i++] = (byte) b;
+            } while (stream.available() > 0);
+        }
+
+        // Set request body
+        switch (this.request.getMethod()) {
             // request body is disregarded if there is one
             case "GET":
             case "HEAD":
-                parseHeaders(fullRequest);
                 break;
 
             // requests MUST have body but can be empty
             case "POST":
             case "PUT":
-                if (m.find()) {
-                    String headers = m.group(0);
-                    String body = fullRequest.substring(m.group(0).length()).trim();
-                    parseHeaders(headers);
-                    if (!body.equals("")) {
-                        request.setBody(body);
-                    }
+                if (this.rawBody != null) {
+                    request.setBody(this.rawBody);
                 } else {
                     request.setBadRequest();
                 }
@@ -62,13 +91,8 @@ public class HttpRequestParser {
 
             // requests MAY have body
             case "DELETE":
-                if (m.find()) {
-                    String headers = m.group(0);
-                    String body = fullRequest.substring(m.group(0).length()).trim();
-                    parseHeaders(headers);
-                    if (!body.equals("")) {
-                        request.setBody(body);
-                    }
+                if (this.rawBody != null) {
+                    request.setBody(this.rawBody);
                 }
                 break;
 
@@ -78,53 +102,37 @@ public class HttpRequestParser {
         }
     }
 
-    // ensures that entire http request is read in (because requests are parsed in
-    // series of packets and those may not be loaded into memory instantly)
-    private String readFullMessage(Socket socket) throws IOException {
-        BufferedInputStream stream = new BufferedInputStream(socket.getInputStream());
-        StringBuilder result = new StringBuilder();
-        do {
-            result.append((char) stream.read());
-        } while (stream.available() > 0);
-        return result.toString();
-    }
+    private void setRequestMethodAndIDs(String requestLine) {
+        String[] requestLineTokens = requestLine.split(" ");
 
-    private void splitHeader(String fullHeader) {
-        String[] splitHeader = fullHeader.split("\\s+");
-
-        if (splitHeader.length < 3) {
+        if (requestLineTokens.length != 3) {
             request.setBadRequest();
         } else {
-            this.request.setMethodAndIDs(splitHeader);
+            this.request.setMethodAndIDs(requestLineTokens);
         }
     }
 
     private void parseHeaders(String headers) {
-        String[] carriageSplit = headers.split(regex.get("carriageReturn"));
+        try {
+            String[] carriageSplit = headers.substring(headers.indexOf("\r\n") + 2).split("\r\n");
 
-        for (String line : carriageSplit) {
-            String[] identAndData = line.split(": ");
-            String removeDash = identAndData[0].trim().toUpperCase().replace("-", "_");
+            for (String line : carriageSplit) {
+                String[] fieldAndValue = line.split(": ");
+                String field = fieldAndValue[0];
+                String value = fieldAndValue[1];
+                String formattedField = field.trim().toUpperCase().replace("-", "_");
 
-            // ensures that header is valid and recognized according to standards
-            if (Header.contains(removeDash)) {
-                request.setHeader(Header.valueOf(removeDash), identAndData[1]);
-            } else {
-                // throw flag for unrecognized header
-                // DOES NOT HAVE TO STOP REQUEST
+                // ensures that header is valid and recognized according to standards
+                if (Header.contains(formattedField)) {
+                    this.request.setHeader(Header.valueOf(formattedField), value);
+                } else {
+                    // throw flag for unrecognized header
+                    // DOES NOT HAVE TO STOP REQUEST
+                }
             }
-
+        } catch (ArrayIndexOutOfBoundsException e) {
+            this.request.setBadRequest();
         }
-    }
 
-    // TODO
-    // REMOVE OR CHANGE THIS FUNCTIONALITY
-    /**
-     * Returns the full http Request for debug purposes
-     *
-     * @return
-     */
-    public String getFullRequest() {
-        return fullRequest;
     }
 }
