@@ -12,7 +12,7 @@ public class HttpRequest {
     private String identifier;
     private String version;
     private final HashMap<Header,String> headers = new HashMap<>();
-    private String body = "";
+    private byte[] body;
     private boolean badRequest = false;
 
     /**
@@ -112,15 +112,15 @@ public class HttpRequest {
      * Sets the http request body
      * @param body string
      */
-    public void setBody(String body){
+    public void setBody(byte[] body){
         this.body = body;
     }
     
     /**
      * Returns the http request body if there is one, otherwise will return blank value
-     * @return
+     * @return request body in Byte[] format can be blank
      */
-    public String getBody(){
+    public byte[] getBody(){
         return body;
     }
     
