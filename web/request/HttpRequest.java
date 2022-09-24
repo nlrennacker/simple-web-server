@@ -47,6 +47,7 @@ public class HttpRequest {
      */
 
     public String getID() {
+        String identifier = Optional.ofNullable(this.identifier).orElse("");
         int indexOfInterrobang = identifier.indexOf('?');
         if (indexOfInterrobang == -1) {
             return identifier;
@@ -60,6 +61,7 @@ public class HttpRequest {
      * @return String Identifier
      */
     public Optional<String> getQueryString() {
+        String identifier = Optional.ofNullable(this.identifier).orElse("");
         int indexOfInterrobang = identifier.indexOf('?');
         if (indexOfInterrobang == -1) {
             return Optional.empty();
