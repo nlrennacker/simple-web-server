@@ -91,7 +91,6 @@ public class Handler implements Runnable {
     }
 
     private void focusResponse(HttpRequest request, HttpResponse response, HttpResource resource) throws IOException {
-
         switch (request.getMethod().toUpperCase()) {
             //difference between get and head
             //head produces get response but WITHOUT body (while still calculating the length of the body)

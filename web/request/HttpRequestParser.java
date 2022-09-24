@@ -61,11 +61,11 @@ public class HttpRequestParser {
             this.rawBody = new byte[Integer.parseInt(this.request.getHeaderValue(Header.CONTENT_LENGTH))];
             int i = 0;
             do {
-                int b = stream.read();
-                if (b == -1) {
+                if (i >= this.rawBody.length) {
                     break;
                 }
-                if (i >= this.rawBody.length) {
+                int b = stream.read();
+                if (b == -1) {
                     break;
                 }
                 this.rawBody[i++] = (byte) b;
