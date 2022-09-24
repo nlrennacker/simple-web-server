@@ -171,7 +171,9 @@ public class Handler implements Runnable {
             Process process = processBuilder.start();
 
             OutputStream outputStream = process.getOutputStream();
-            outputStream.write(body, 0, body.length);
+            if (body != null) {
+                outputStream.write(body, 0, body.length);
+            }
             outputStream.flush();
             outputStream.close();
             this.response.setStatusCode(200);
