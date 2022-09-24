@@ -98,7 +98,7 @@ public class Handler implements Runnable {
             case "GET","HEAD" -> {
                 if (request.hasHeader(Header.IF_MODIFIED_SINCE) && resource.compareDateTime(request.getHeaderValue(Header.IF_MODIFIED_SINCE))) {
                     response.setStatusCode(304);
-                    response.addHeader("Last-Modified:", resource.getFileDateTimeToString());
+                    response.addHeader("Last-Modified", resource.getFileDateTimeToString());
                     writeResponse();
                     return;
                 }
