@@ -91,15 +91,13 @@ public class Handler implements Runnable {
     }
 
     private void focusResponse(HttpRequest request, HttpResponse response, HttpResource resource) throws IOException {
-
         switch (request.getMethod().toUpperCase()) {
-
             //difference between get and head
             //head produces get response but WITHOUT body (while still calculating the length of the body)
             case "GET","HEAD" -> {
-                if (request.hasHeader(Header.IFMODIFIEDSINCE) && resource.compareDateTime(request.getHeaderValue(Header.IFMODIFIEDSINCE))) {
+                if (request.hasHeader(Header.IF_MODIFIED_SINCE) && resource.compareDateTime(request.getHeaderValue(Header.IF_MODIFIED_SINCE))) {
                     response.setStatusCode(304);
-                    response.addHeader("Last-Modified:", resource.getFileDateTimeToString());
+                    response.addHeader("Last-Modified", resource.getFileDateTimeToString());
                     writeResponse();
                     return;
                 }
@@ -115,19 +113,27 @@ public class Handler implements Runnable {
             case "PUT" -> {
                 //TODO Potentially write in protections for existing files that should not be overwritten
                 File file = new File(resource.getPath().toString());
+                // Create directories if needed
+                File parentDirectory = new File(file.getParent());
+                if (!parentDirectory.exists()) {
+                    parentDirectory.mkdirs();
+                }
                 if (file.createNewFile()) {
                     response.setStatusCode(201);
                 } else {
                     response.setStatusCode(200);
                 }
-                Files.write(resource.getPath(), Collections.singletonList(request.getBody()), StandardCharsets.ISO_8859_1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+                Files.write(resource.getPath(), request.getBody());
                 response.addHeader("Content-Location", request.getID());
                 response.addHeader("Content-Type", "text/html");
                 response.setBody(this.responseConcat(request).getBytes());
                 writeResponse();
             }
             case "POST" -> {
-
+                String mimeType = ConfigResource.getMimeTypes().getMimeTypeForExtension(getFileExtension(resource.getPath())).orElse(DEFAULT_MIME_TYPE);
+                response.addHeader("Content-Type", mimeType);
+                response.setBody(Files.readAllBytes(resource.getPath()));
+                writeResponse();
             }
             case "DELETE" -> {
                 //TODO Potentially write in protections for existing files that should not be deleted
@@ -139,13 +145,14 @@ public class Handler implements Runnable {
                         System.out.println("Failed to delete file: " + file.getName());
                     }
                 }
-
+                response.setStatusCode(204);
+                writeResponse();
             }
             default -> {
-                response.setStatusCode(200);
+                response.setStatusCode(400);
+                writeResponse();
             }
         }
-
     }
 
     private void handleCgi(HttpResource resource) {
@@ -159,12 +166,14 @@ public class Handler implements Runnable {
             env.put("HTTP_".concat(requestHeader.getKey().toString()), requestHeader.getValue());
         }
 
-        byte[] body = this.request.getBody().getBytes();
+        byte[] body = this.request.getBody();
         try {
             Process process = processBuilder.start();
 
             OutputStream outputStream = process.getOutputStream();
-            outputStream.write(body, 0, body.length);
+            if (body != null) {
+                outputStream.write(body, 0, body.length);
+            }
             outputStream.flush();
             outputStream.close();
             this.response.setStatusCode(200);
