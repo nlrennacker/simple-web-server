@@ -131,7 +131,10 @@ public class Handler implements Runnable {
                 writeResponse();
             }
             case "POST" -> {
-
+                String mimeType = ConfigResource.getMimeTypes().getMimeTypeForExtension(getFileExtension(resource.getPath())).orElse(DEFAULT_MIME_TYPE);
+                response.addHeader("Content-Type", mimeType);
+                response.setBody(Files.readAllBytes(resource.getPath()));
+                writeResponse();
             }
             case "DELETE" -> {
                 //TODO Potentially write in protections for existing files that should not be deleted
