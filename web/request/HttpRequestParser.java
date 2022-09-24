@@ -114,7 +114,7 @@ public class HttpRequestParser {
 
     private void parseHeaders(String headers) {
         try {
-            String[] carriageSplit = headers.substring(headers.indexOf("\r\n") + 2).split("\r\n");
+            String[] carriageSplit = headers.split("\r\n");
 
             for (String line : carriageSplit) {
                 String[] fieldAndValue = line.split(": ");
@@ -133,6 +133,5 @@ public class HttpRequestParser {
         } catch (ArrayIndexOutOfBoundsException e) {
             this.request.setBadRequest();
         }
-
     }
 }
