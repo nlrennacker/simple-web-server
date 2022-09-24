@@ -47,7 +47,11 @@ public class HttpResource {
             requestPath = Paths.get(requestPath.toString(), ConfigResource.getHttpdConf().getDirectoryIndex().orElse(DEFAULT_DIRECTORY_INDEX));
         }
     }
-
+    
+    /**
+     * Gets the the configured path for whichever file system is present on running machine
+     * @return configured Path to http resource file location
+     */
     public Path getPath() {
         return requestPath;
     }
