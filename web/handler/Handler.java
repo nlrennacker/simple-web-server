@@ -56,7 +56,7 @@ public class Handler implements Runnable {
                 return;
             }
 
-            HttpResource resource = new HttpResource(request);
+            HttpResource resource = new HttpResource(this.request);
 
             // side note for debugging, http auth is stored per browser, so if viewing auth
             // in browser window (as opposed to postman) you will not get the auth popup

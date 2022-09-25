@@ -100,7 +100,6 @@ public class HttpRequest {
     }
 
     /**
-     * 
      * @return the full map of request headers
      */
     public Map<Header,String> getHeaders(){

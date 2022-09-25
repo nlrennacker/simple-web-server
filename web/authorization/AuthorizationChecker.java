@@ -11,9 +11,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * 
- */
 public class AuthorizationChecker {
     public enum AuthorizationResult {
         VALID,
@@ -72,7 +69,6 @@ public class AuthorizationChecker {
     }
 
     /**
-     * 
      * @return Returns the respective Authentication Header in specific format -> [authorizationType] realm=\[authorizationName]\
      */
     public String getWWWAuthenticateHeader() {
