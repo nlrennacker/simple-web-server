@@ -3,8 +3,12 @@ package web.response;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -76,7 +80,7 @@ public class HttpResponse {
     public void writeResponse(OutputStream outputStream) throws IOException {
         // Set mandatory headers specified in project spec
         this.headers.put("Server", "Chan Rennacker");
-        this.headers.put("Date", (new Date()).toString());
+        this.headers.put("Date", DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH).withZone(ZoneId.of("GMT")).format(Instant.now()));
 
         // Automatically add other headers
         if (this.body != null) {
