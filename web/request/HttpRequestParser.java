@@ -11,6 +11,7 @@ public class HttpRequestParser {
     private String headerString;
     private byte[] rawBody;
 
+
     /**
      * Constructor parses the httpRequest filling respective HttpRequest fields
      * @param socket
@@ -31,7 +32,7 @@ public class HttpRequestParser {
     // series of packets and those may not be loaded into memory instantly)
     private void readAndParseFullMessage(Socket socket) throws IOException {
         BufferedInputStream stream = new BufferedInputStream(socket.getInputStream());
-
+        
         // Read and parse headers from input stream
         StringBuilder requestMessageBuilder = new StringBuilder();
         byte[] previousBytes = new byte[3];

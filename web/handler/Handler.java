@@ -152,13 +152,14 @@ public class Handler implements Runnable {
                     }
                     this.writeResponse();
                 }
-
+                response.setStatusCode(204);
+                writeResponse();
             }
             default -> {
-                this.response.setStatusCode(200);
+                response.setStatusCode(400);
+                writeResponse();
             }
         }
-
     }
 
     private void handleCgi(HttpResource resource) {
