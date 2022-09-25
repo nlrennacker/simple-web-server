@@ -20,7 +20,10 @@ public class AuthorizationChecker {
 
     private HtAccess htAccess;
     private String checkedUser;
-
+    /**
+     * AuthorizationChecker constructor: creates respective HtAccess object in order to parse authentication.
+     * @param htAccessPath A path to the htAccess file which must be included in the file system for authentication.
+     */
     public AuthorizationChecker(Path htAccessPath) {
         try {
             if (htAccessPath.toFile().exists()) {
@@ -29,6 +32,12 @@ public class AuthorizationChecker {
         } catch (IOException ignored) {}
     }
 
+    /**
+     * Checks the authorization of the request and returns a valid or invalid response based on Authentication match
+     * @param request An HTTP request with the authorization header
+     * @return an AuthorizationResult (enum): VALID if match, INVALID if not
+     * @throws IOException if authorization type is unsupported then INVALID is returned
+     */
     public AuthorizationResult checkAuthorization(HttpRequest request) throws IOException {
         if (htAccess == null) {
             return AuthorizationResult.VALID;
@@ -59,6 +68,9 @@ public class AuthorizationChecker {
         }
     }
 
+    /**
+     * @return Returns the respective Authentication Header in specific format -> [authorizationType] realm=\[authorizationName]\
+     */
     public String getWWWAuthenticateHeader() {
         Map<String, String> htAccessConfiguration = this.htAccess.getConfiguration();
         String authType = htAccessConfiguration.get("AuthType");
@@ -77,6 +89,10 @@ public class AuthorizationChecker {
         }
     }
 
+    /**
+     * 
+     * @return nullable Optional string of user
+     */
     public Optional<String> getCheckedUser() {
         return Optional.ofNullable(this.checkedUser);
     }

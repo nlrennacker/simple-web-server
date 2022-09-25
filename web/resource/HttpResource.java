@@ -2,7 +2,6 @@ package web.resource;
 
 import web.request.HttpRequest;
 
-import javax.print.attribute.DateTimeSyntax;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,7 +12,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public class HttpResource {
     private static final String DEFAULT_DIRECTORY_INDEX = "index.html";
@@ -49,7 +47,11 @@ public class HttpResource {
             requestPath = Paths.get(requestPath.toString(), ConfigResource.getHttpdConf().getDirectoryIndex().orElse(DEFAULT_DIRECTORY_INDEX));
         }
     }
-
+    
+    /**
+     * Gets the the configured path for whichever file system is present on running machine
+     * @return configured Path to http resource file location
+     */
     public Path getPath() {
         return requestPath;
     }

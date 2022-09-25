@@ -12,10 +12,16 @@ public class HttpRequestParser {
     private byte[] rawBody;
 
 
-    public HttpRequestParser(Socket socket, HttpRequest request) {
+    /**
+     * Constructor parses the httpRequest filling respective HttpRequest fields
+     * @param socket
+     * @param request
+     * @throws IOException
+     */
+    public HttpRequestParser(Socket socket, HttpRequest request){
         try {
             this.request = request;
-            readAndParseFullMessage(socket);
+            this.readAndParseFullMessage(socket);
         } catch (Exception e) {
             System.err.println("Error occurred when creating request");
             e.printStackTrace();
@@ -26,7 +32,7 @@ public class HttpRequestParser {
     // series of packets and those may not be loaded into memory instantly)
     private void readAndParseFullMessage(Socket socket) throws IOException {
         BufferedInputStream stream = new BufferedInputStream(socket.getInputStream());
-
+        
         // Read and parse headers from input stream
         StringBuilder requestMessageBuilder = new StringBuilder();
         byte[] previousBytes = new byte[3];

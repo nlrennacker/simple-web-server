@@ -12,14 +12,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
@@ -40,6 +38,13 @@ public class Handler implements Runnable {
         this.response = new HttpResponse();
     }
 
+    /**
+     * Accepts http requests and generates http responses...
+     * <p>
+     * Accepted http methods are HEAD, GET, PUT, POST, DELETE
+     * <p/>
+     * Overridden run function (from runnable interface) for threading support
+     */
     @Override
     public void run() {
         try {
@@ -47,11 +52,11 @@ public class Handler implements Runnable {
 
             if (this.request.isInvalidRequest()) {
                 this.response.setStatusCode(400);
-                writeResponse();
+                this.writeResponse();
                 return;
             }
 
-            HttpResource resource = new HttpResource(request);
+            HttpResource resource = new HttpResource(this.request);
 
             // side note for debugging, http auth is stored per browser, so if viewing auth
             // in browser window (as opposed to postman) you will not get the auth popup
@@ -62,25 +67,25 @@ public class Handler implements Runnable {
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.MISSING_AUTH)) {
                 this.response.setStatusCode(401);
                 this.response.addHeader("WWW-Authenticate", this.authorizationChecker.getWWWAuthenticateHeader());
-                writeResponse();
+                this.writeResponse();
                 return;
             }
             if (authorizationResult.equals(AuthorizationChecker.AuthorizationResult.INVALID)) {
                 this.response.setStatusCode(403);
-                writeResponse();
+                this.writeResponse();
                 return;
             }
 
             if (Files.notExists(resource.getPath()) && !this.request.getMethod().equals("PUT")) {
                 this.response.setStatusCode(404);
-                writeResponse();
+                this.writeResponse();
                 return;
             }
 
             if (resource.getIsScriptAliased()) {
-                handleCgi(resource);
+                this.handleCgi(resource);
             } else {
-                focusResponse(this.request, this.response, resource);
+                this.focusResponse(this.request, this.response, resource);
             }
         } catch (Exception e) {
             System.out.println("Error while handling request:");
@@ -96,22 +101,22 @@ public class Handler implements Runnable {
             //head produces get response but WITHOUT body (while still calculating the length of the body)
             case "GET","HEAD" -> {
                 if (request.hasHeader(Header.IF_MODIFIED_SINCE) && resource.compareDateTime(request.getHeaderValue(Header.IF_MODIFIED_SINCE))) {
-                    response.setStatusCode(304);
-                    response.addHeader("Last-Modified", resource.getFileDateTimeToString());
-                    writeResponse();
+                    this.response.setStatusCode(304);
+                    this.response.addHeader("Last-Modified", resource.getFileDateTimeToString());
+                    this.writeResponse();
                     return;
                 }
                 String mimeType = ConfigResource.getMimeTypes().getMimeTypeForExtension(getFileExtension(resource.getPath())).orElse(DEFAULT_MIME_TYPE);
-                response.addHeader("Content-Type", mimeType);
-                response.setBody(Files.readAllBytes(resource.getPath()));
+                this.response.addHeader("Content-Type", mimeType);
+                this.response.setBody(Files.readAllBytes(resource.getPath()));
                 if(request.getMethod().equalsIgnoreCase("HEAD")){
-                    response.setSendBody();
+                    this.response.setSendBody();
                 }
-                writeResponse();
+                this.writeResponse();
             }
+            
             //creates or replaces file at supplied location
             case "PUT" -> {
-                //TODO Potentially write in protections for existing files that should not be overwritten
                 File file = new File(resource.getPath().toString());
                 // Create directories if needed
                 File parentDirectory = new File(file.getParent());
@@ -119,31 +124,33 @@ public class Handler implements Runnable {
                     parentDirectory.mkdirs();
                 }
                 if (file.createNewFile()) {
-                    response.setStatusCode(201);
+                    this.response.setStatusCode(201);
                 } else {
-                    response.setStatusCode(200);
+                    this.response.setStatusCode(200);
                 }
                 Files.write(resource.getPath(), request.getBody());
-                response.addHeader("Content-Location", request.getID());
-                response.addHeader("Content-Type", "text/html");
-                response.setBody(this.responseConcat(request).getBytes());
-                writeResponse();
+                this.response.addHeader("Content-Location", request.getID());
+                this.response.addHeader("Content-Type", "text/html");
+                this.response.setBody(this.responseConcat(request).getBytes());
+                this.writeResponse();
             }
             case "POST" -> {
                 String mimeType = ConfigResource.getMimeTypes().getMimeTypeForExtension(getFileExtension(resource.getPath())).orElse(DEFAULT_MIME_TYPE);
-                response.addHeader("Content-Type", mimeType);
-                response.setBody(Files.readAllBytes(resource.getPath()));
-                writeResponse();
+                this.response.addHeader("Content-Type", mimeType);
+                this.response.setBody(Files.readAllBytes(resource.getPath()));
+                this.writeResponse();
             }
             case "DELETE" -> {
-                //TODO Potentially write in protections for existing files that should not be deleted
                 if(Files.exists(resource.getPath())){
                     File file = new File(resource.getPath().toString());
                     if(file.delete()){
                         System.out.println("Successfully deleted: " + file.getName());
+                        this.response.setStatusCode(204);
                     } else{
                         System.out.println("Failed to delete file: " + file.getName());
+                        this.response.setStatusCode(404);
                     }
+                    this.writeResponse();
                 }
                 response.setStatusCode(204);
                 writeResponse();
@@ -177,12 +184,12 @@ public class Handler implements Runnable {
             outputStream.flush();
             outputStream.close();
             this.response.setStatusCode(200);
-            writeCgiResponse(process);
+            this.writeCgiResponse(process);
             return;
         } catch (IOException e) {
             e.printStackTrace();
             this.response.setStatusCode(500);
-            writeResponse();
+            this.writeResponse();
             return;
         }
     }
@@ -198,7 +205,7 @@ public class Handler implements Runnable {
             this.response.writeResponse(outputStream);
             outputStream.flush();
             this.bytesSent = outputStream.getCount();
-            logRequest();
+            this.logRequest();
         } catch (IOException e) {
             // Handle the case where client closed the connection while server was writing to it
             try {
@@ -275,3 +282,4 @@ public class Handler implements Runnable {
         );
     }
 }
+
